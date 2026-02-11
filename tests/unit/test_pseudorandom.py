@@ -32,3 +32,6 @@ def test_password_to_seed_non_string():
 def test_password_to_seed_empty_string():
     with pytest.raises(ValueError):
         password_to_seed("")
+
+
+# --- Tests for password_to_seed ---
