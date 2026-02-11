@@ -3,26 +3,24 @@ Pseudorandom number generation module
 Handles password-based seed generation and pixel selection
 """
 
+import hashlib
+
 
 def password_to_seed(password: str) -> int:
     """
-    Convert password string to deterministic integer seed using SHA-256.
-
-    Process:
-        1. Hash password with SHA-256
-        2. Take first 8 bytes of hash
-        3. Convert to 64-bit unsigned integer
-
-    Args:
-        password: User-provided password string
-
-    Returns:
-        64-bit integer seed
-
-    Example:
-        "mypassword" → 9934964102539539065
+    Generate a deterministic 64-bit integer seed from a password string.
     """
-    ...
+
+    if not isinstance(password, str):
+        raise TypeError("password must be a string")
+
+    if password == "":
+        raise ValueError("password cannot be empty")
+
+    sha_256: str = hashlib.sha256(password.encode("utf-8")).hexdigest()
+    first_8_bytes_hex = sha_256[:16]
+
+    return int(first_8_bytes_hex, 16)
 
 
 def generate_pixel_coordinates(height: int, width: int, seed: int):
