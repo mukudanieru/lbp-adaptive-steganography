@@ -4,6 +4,7 @@ Handles password-based seed generation and pixel selection
 """
 
 import hashlib
+import random
 
 
 def password_to_seed(password: str) -> int:
@@ -23,22 +24,40 @@ def password_to_seed(password: str) -> int:
     return int(first_8_bytes_hex, 16)
 
 
-def generate_pixel_coordinates(height: int, width: int, seed: int):
+def generate_pixel_coordinates(
+    height: int, width: int, seed: int
+) -> list[tuple[int, int]]:
     """
     Generate pseudorandom sequence of pixel coordinates.
-
-    Uses Mersenne Twister PRNG for reproducible shuffling.
+    Coordinates are returned in (y, x) order (row, column).
 
     Args:
-        height: Image height
-        width: Image width
-        seed: Integer seed from password
+        height: Image height (number of rows). Must be >= 0.
+        width: Image width (number of columns). Must be >= 0.
+        seed: Seed for the PRNG to ensure reproducibility.
 
     Returns:
-        List of (y, x) coordinates in pseudorandom order
+        A shuffled list of (y, x) pixel coordinates.
 
-    Example:
-        For 3x3 image:
-        [(0,0), (0,1), (0,2), (1,0), ..., (2,2)] → shuffled
+    Raises:
+        TypeError: If inputs are not integers.
+        ValueError: If height or width is negative.
     """
-    ...
+
+    if (
+        not isinstance(height, int)
+        or not isinstance(width, int)
+        or not isinstance(seed, int)
+    ):
+        raise TypeError("height, width, and seed must all be integers")
+
+    if height < 0 or width < 0:
+        raise ValueError("height and width must be non-negative")
+
+    rng = random.Random(seed)
+    coords: list[tuple[int, int]] = [
+        (y, x) for y in range(height) for x in range(width)
+    ]
+
+    rng.shuffle(coords)
+    return coords

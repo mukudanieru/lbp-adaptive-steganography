@@ -80,18 +80,18 @@ def test_pixel_gen_determinism():
     """Ensures same seed produces the same shuffle sequence."""
 
     h, w, seed = 512, 512, 9934964102539539065
-    sequence_1 = generate_pixel_coordinates(h, w, seed)
-    sequence_2 = generate_pixel_coordinates(h, w, seed)
-    assert sequence_1 == sequence_2
+    sequence_a = generate_pixel_coordinates(h, w, seed)
+    sequence_b = generate_pixel_coordinates(h, w, seed)
+    assert sequence_a == sequence_b
 
 
 def test_pixel_gen_different_seeds():
     """Ensures different seeds produce different shuffle sequences."""
 
     h, w = 512, 512
-    seq_a = generate_pixel_coordinates(h, w, 9934964102539539065)
-    seq_b = generate_pixel_coordinates(h, w, 9934964102539539064)
-    assert seq_a != seq_b
+    sequence_a = generate_pixel_coordinates(h, w, 9934964102539539065)
+    sequence_b = generate_pixel_coordinates(h, w, 9934964102539539064)
+    assert sequence_a != sequence_b
 
 
 @pytest.mark.parametrize("h, w", [(1, 1), (1, 10), (10, 1)])
@@ -100,3 +100,35 @@ def test_pixel_gen_edge_cases(h, w):
 
     coords = generate_pixel_coordinates(h, w, 9934964102539539065)
     assert len(coords) == h * w
+
+
+@pytest.mark.parametrize(
+    "h, w",
+    [
+        (-1, 10),
+        (10, -1),
+        (-5, -5),
+    ],
+)
+def test_pixel_gen_negative_dimensions(h, w):
+    """Ensures negative dimensions raise ValueError."""
+    with pytest.raises(ValueError):
+        generate_pixel_coordinates(h, w, 123)
+
+
+@pytest.mark.parametrize(
+    "h, w, seed",
+    [
+        (10.5, 10, 1),
+        (10, 10.5, 1),
+        (10, 10, 1.5),
+        ("10", 10, 1),
+        (10, "10", 1),
+        (10, 10, "seed"),
+        (None, 10, 1),
+    ],
+)
+def test_pixel_gen_invalid_types(h, w, seed):
+    """Ensures non-integer inputs raise TypeError."""
+    with pytest.raises(TypeError):
+        generate_pixel_coordinates(h, w, seed)
