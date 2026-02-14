@@ -3,22 +3,29 @@ Image preprocessing module
 Handles image loading, conversion, and bit manipulation
 """
 
+import cv2
+import numpy as np
 
-def load_img(file: str):
+
+def load_img(file: str) -> np.ndarray:
     """
-    Load an image from file.
+    Load an image from file as a NumPy array containing RGB values stored in BGR order.
 
     Args:
-        filepath: Path to the image file
+        file: Path to the image file
 
     Returns:
-        RGB image as numpy array (height, width, 3)
+        An image as a NumPy array of shape (height, width, 3) in BGR format
 
     Raises:
-        FileNotFoundError: If image file doesn't exist
-        ValueError: If image is not 512x512
+        FileNotFoundError: If the image file cannot be loaded
     """
-    ...
+    img = cv2.imread(file, cv2.IMREAD_COLOR)
+
+    if img is None:
+        raise FileNotFoundError(f"image file not found: {file}")
+
+    return img
 
 
 def rgb_to_grayscale(rgb_img):
