@@ -1,14 +1,15 @@
 import pytest
 import numpy as np
 import cv2
-from src.core.preprocessing import load_img
+from src.core.preprocessing import load_img, img_to_grayscale
 
 
+# --- Tests for load_img ---
 @pytest.fixture
 def dummy_image_path(tmp_path):
     """Create a temporary 10x10 red BGR image for testing."""
 
-    img_path = str(tmp_path / "./data/airplane.png")
+    img_path = str(tmp_path / "test_image.png")
 
     # In BGR, Red is [0, 0, 255]
     img = np.zeros((10, 10, 3), dtype=np.uint8)
@@ -65,3 +66,43 @@ def test_load_img_invalid_file(tmp_path):
 
     with pytest.raises(FileNotFoundError):
         load_img(str(text_file))
+
+
+# --- Tests for img_to_grayscale ---
+def test_img_to_grayscale_shape():
+    """Verify that a (H, W, 3) image is converted to (H, W)."""
+
+    img = np.zeros((10, 10, 3), dtype=np.uint8)
+    gray = img_to_grayscale(img)
+
+    assert gray.shape == (10, 10)
+
+
+def test_img_to_grayscale_dtype():
+    """Ensure the output is specifically 8-bit unsigned integer."""
+
+    img = np.random.randint(0, 256, (5, 5, 3), dtype=np.uint8)
+    gray = img_to_grayscale(img)
+
+    assert gray.dtype == np.uint8
+
+
+def test_img_to_grayscale_math():
+    """Check if weights (0.11B, 0.59G, 0.30R) are applied correctly."""
+
+    # Create a single pixel: Blue=100, Green=0, Red=0
+    img = np.array([[[100, 0, 0]]], dtype=np.uint8)
+    gray = img_to_grayscale(img)
+
+    # 100 * 0.11 = 11
+    assert gray[0, 0] == 11
+
+
+def test_img_to_grayscale_constant_values():
+    """Ensure a grey pixel remains the same value after conversion."""
+
+    # 128*0.11 + 128*0.59 + 128*0.30 = 128
+    img = np.full((2, 2, 3), 128, dtype=np.uint8)
+    gray = img_to_grayscale(img)
+
+    assert np.all(gray == 128)
