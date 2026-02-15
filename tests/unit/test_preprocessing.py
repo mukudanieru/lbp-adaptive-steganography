@@ -1,7 +1,7 @@
-import pytest
+from src.core.preprocessing import load_img, img_to_grayscale, validate_image_size
 import numpy as np
+import pytest
 import cv2
-from src.core.preprocessing import load_img, img_to_grayscale
 
 
 # --- Tests for load_img ---
@@ -70,7 +70,7 @@ def test_load_img_invalid_file(tmp_path):
 
 # --- Tests for img_to_grayscale ---
 def test_img_to_grayscale_shape():
-    """Verify that a (H, W, 3) image is converted to (H, W)."""
+    """Tests that a (H, W, 3) image is converted to (H, W)."""
 
     img = np.zeros((10, 10, 3), dtype=np.uint8)
     gray = img_to_grayscale(img)
@@ -79,7 +79,7 @@ def test_img_to_grayscale_shape():
 
 
 def test_img_to_grayscale_dtype():
-    """Ensure the output is specifically 8-bit unsigned integer."""
+    """Tests that the output is specifically 8-bit unsigned integer."""
 
     img = np.random.randint(0, 256, (5, 5, 3), dtype=np.uint8)
     gray = img_to_grayscale(img)
@@ -88,7 +88,7 @@ def test_img_to_grayscale_dtype():
 
 
 def test_img_to_grayscale_math():
-    """Check if weights (0.11B, 0.59G, 0.30R) are applied correctly."""
+    """Tests that weights (0.11B, 0.59G, 0.30R) are applied correctly."""
 
     # Create a single pixel: Blue=100, Green=0, Red=0
     img = np.array([[[100, 0, 0]]], dtype=np.uint8)
@@ -106,3 +106,24 @@ def test_img_to_grayscale_constant_values():
     gray = img_to_grayscale(img)
 
     assert np.all(gray == 128)
+
+
+# --- Tests for validate_image_size ---
+def test_validate_image_size_match():
+    """
+    Ensures that a ValueError is raised when the input image does not have exactly two dimensions.
+    This validates that the function correctly rejects images that are not 2D arrays.
+    """
+
+    img = np.zeros((100, 200), dtype=np.uint8)
+    assert validate_image_size(img, (100, 200)) is True
+
+
+def test_validate_image_size_mismatch():
+    """
+    Ensures that a ValueError is raised when the expected_size argument is not a (height, width) tuple.
+    This validates that the function correctly enforces the required tuple structure.
+    """
+
+    img = np.zeros((100, 200), dtype=np.uint8)
+    assert validate_image_size(img, (50, 50)) is False
