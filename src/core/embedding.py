@@ -14,7 +14,7 @@ def text_to_binary(text: str) -> str:
     Returns:
         Binary string (e.g., "010010100101...")
     """
-    ...
+    return ''.join(format(ord(char), '08b') for char in text)
 
 
 def calculate_capacity(classification_map, num_channels):
