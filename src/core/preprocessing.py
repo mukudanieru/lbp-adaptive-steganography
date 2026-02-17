@@ -49,21 +49,21 @@ def img_to_grayscale(rgb_img: np.ndarray) -> np.ndarray:
     return floating_gray.astype(np.uint8)
 
 
-def extract_3msb(pixel_value: np.uint8):
+def extract_3msb(gray_img: np.ndarray) -> np.ndarray:
     """
-    Extract 3 most significant bits from an 8-bit pixel value.
-
-    Example:
-        162 (10100010) → 5 (101)
-        255 (11111111) → 7 (111)
+    Convert a grayscale uint8 image (0-255) to its 3-MSB representation (0-7).
 
     Args:
-        pixel_value: 8-bit pixel intensity (0-255)
+        gray_img: NumPy array of shape (H, W), dtype uint8
 
     Returns:
-        3-MSB value (0-7)
+        NumPy array of shape (H, W), dtype uint8, values in range 0-7
     """
-    ...
+    if gray_img.dtype != np.uint8:
+        raise ValueError("Input image must be of dtype uint8")
+
+    # Keep only the 3 most significant bits
+    return np.right_shift(gray_img, 5)
 
 
 def validate_image_size(gray_img: np.ndarray, expected_size: tuple[int, int]) -> bool:
