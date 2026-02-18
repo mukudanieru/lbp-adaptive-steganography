@@ -2,9 +2,11 @@
 Local Binary Pattern (LBP) module
 Handles texture analysis and pixel classification
 """
+from typing import List, Tuple
+import numpy as np
 
 
-def get_neighbors(image, x: int, y: int):
+def get_neighbors(image: np.ndarray, x: int, y: int) -> List[Tuple[int, int]]:
     """
     Get valid neighbor coordinates for a pixel.
 
@@ -21,7 +23,22 @@ def get_neighbors(image, x: int, y: int):
         - Edge pixels: 5 neighbors
         - Corner pixels: 3 neighbors
     """
-    ...
+    height, width = image.shape
+    neighbors: List[Tuple[int, int]] = []
+
+    directions: List[Tuple[int, int]] = [
+        (-1, -1), (-1, 0), (-1, 1),
+        (0, 1),
+        (1, 1), (1, 0), (1, -1),
+        (0, -1),
+    ]
+
+    for dy, dx in directions:
+        ny, nx = y + dy, x + dx
+        if 0 <= ny < height and 0 <= nx < width:
+            neighbors.append((ny, nx))
+
+    return neighbors
 
 
 def compare_neighbors(center_value, neighbor_values):
