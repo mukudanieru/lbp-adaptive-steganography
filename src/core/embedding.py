@@ -3,6 +3,8 @@ Adaptive LSB steganography embedding module
 Handles secret message embedding into cover images
 """
 
+import numpy as np
+
 
 def text_to_binary(text: str) -> str:
     """
@@ -14,23 +16,30 @@ def text_to_binary(text: str) -> str:
     Returns:
         Binary string (e.g., "010010100101...")
     """
+
+    if not isinstance(text, str):
+        raise TypeError("")
+
     return ''.join(format(ord(char), '08b') for char in text)
 
 
-def calculate_capacity(classification_map, num_channels):
+def calculate_capacity(classification_map: np.ndarray, num_channels=3) -> int:
     """
     Calculate embedding capacity based on texture classification.
 
-    Capacity = 3 × (num_smooth × 1 + num_rough × 2)
+    Capacity = num_channels × (num_smooth × 1 + num_rough × 2)
 
     Args:
-        classification_map: Texture classification (0=smooth, 1=rough)
+        classification_map: Linear array of texture classification (0=smooth, 1=rough)
         num_channels: Number of color channels (default 3 for RGB)
 
     Returns:
         Total capacity in bits
     """
-    ...
+    num_rough = sum(classification_map)
+    num_smooth = len(classification_map) - num_rough
+    
+    return num_channels * (num_smooth * 1 + num_rough * 2)
 
 
 def embed_bits_in_pixel(pixel_rgb, bits, num_bits):
