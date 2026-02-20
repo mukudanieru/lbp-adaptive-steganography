@@ -31,9 +31,8 @@ from src.core.lbp import (
 
 
 # -----------------------------
-# get_neighbors
+# Tests for get_neighbors
 # -----------------------------
-
 def test_get_neighbors_interior():
     """
     Interior pixel should have exactly 8 neighbors.

@@ -20,14 +20,14 @@ def text_to_binary(text: str) -> str:
     if not isinstance(text, str):
         raise TypeError("")
 
-    return ''.join(format(ord(char), '08b') for char in text)
+    return "".join(format(ord(char), "08b") for char in text)
 
 
-def calculate_capacity(classification_map: np.ndarray, num_channels=3) -> int:
+def calculate_capacity(classification_map: np.ndarray, num_channels: int = 3) -> int:
     """
     Calculate embedding capacity based on texture classification.
 
-    Capacity = num_channels × (num_smooth × 1 + num_rough × 2)
+    Capacity = num_channels * (num_smooth * 1 + num_rough * 2)
 
     Args:
         classification_map: Linear array of texture classification (0=smooth, 1=rough)
@@ -35,11 +35,25 @@ def calculate_capacity(classification_map: np.ndarray, num_channels=3) -> int:
 
     Returns:
         Total capacity in bits
+
+    Raises:
+        TypeError: If inputs are of incorrect type.
+        ValueError: If classification_map contains values other than 0 or 1.
     """
-    num_rough = sum(classification_map)
-    num_smooth = len(classification_map) - num_rough
-    
-    return num_channels * (num_smooth * 1 + num_rough * 2)
+
+    if not isinstance(classification_map, np.ndarray):
+        raise TypeError("classification_map must be a numpy.ndarray.")
+
+    if not isinstance(num_channels, int):
+        raise TypeError("num_channels must be an integer.")
+
+    if num_channels <= 0:
+        raise ValueError("num_channels must be a positive integer.")
+
+    num_rough = np.count_nonzero(classification_map == 1)
+    num_smooth = np.count_nonzero(classification_map == 0)
+
+    return int(num_channels * (num_smooth * 1 + num_rough * 2))
 
 
 def embed_bits_in_pixel(pixel_rgb, bits, num_bits):
