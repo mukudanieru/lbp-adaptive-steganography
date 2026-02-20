@@ -56,7 +56,7 @@ def calculate_capacity(classification_map: np.ndarray, num_channels: int = 3) ->
     return int(num_channels * (num_smooth * 1 + num_rough * 2))
 
 
-def embed_bits_in_pixel(pixel_rgb, bits, num_bits):
+def embed_bits_in_pixel(rgb_img: np.ndarray, bits: str, num_bits: int) -> np.ndarray:
     """
     Embed bits into a single RGB pixel using LSB substitution.
 
@@ -76,12 +76,12 @@ def embed_bits_in_pixel(pixel_rgb, bits, num_bits):
 
 
 def embed_message(
-    cover_image,
-    secret_message,
-    password,
-    classification_map,
-    pixel_coords,
-):
+    rgb_img: np.ndarray,
+    secret_message: str,
+    password: str,
+    classification_map: np.ndarray,
+    pixel_coords: list[tuple[int, int]],
+) -> np.ndarray:
     """
     Main embedding function.
 
