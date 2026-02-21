@@ -61,3 +61,37 @@ def test_get_neighbors_edge():
     neighbors = get_neighbors(image, x=2, y=0)
 
     assert len(neighbors) == 5
+
+# -----------------------------
+# compare_neighbors
+# -----------------------------
+
+
+def test_compare_neighbors():
+    test_cases = [
+        # Interior pixel (8 neighbors)
+        {
+            "center": 4,
+            "neighbors": [5, 3, 4, 6, 2, 4, 3, 5],
+            "expected": [1, 0, 1, 1, 0, 1, 0, 1],
+            "description": "interior"
+        },
+        # Edge pixel (5 neighbors)
+        {
+            "center": 4,
+            "neighbors": [5, 4, 3, 6, 4],
+            "expected": [1, 1, 0, 1, 1],
+            "description": "edge"
+        },
+        # Corner pixel (3 neighbors)
+        {
+            "center": 4,
+            "neighbors": [5, 3, 4],
+            "expected": [1, 0, 1],
+            "description": "corner"
+        },
+    ]
+
+    for case in test_cases:
+        result = compare_neighbors(case["center"], case["neighbors"])
+        assert result == case["expected"], f"Failed for {case['description']} pixel"
