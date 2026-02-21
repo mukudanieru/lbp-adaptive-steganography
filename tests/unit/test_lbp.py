@@ -95,3 +95,93 @@ def test_compare_neighbors():
     for case in test_cases:
         result = compare_neighbors(case["center"], case["neighbors"])
         assert result == case["expected"], f"Failed for {case['description']} pixel"
+
+
+# -----------------------------
+# count_transitions
+# -----------------------------
+
+def test_count_transitions_interior_uniform():
+    """
+    Uniform pattern should produce 0 transitions.
+    """
+    pattern = [1, 1, 1, 1, 1, 1, 1, 1]
+    assert count_transitions(pattern) == 0
+
+
+def test_count_transitions_interior_alternating():
+    """
+    Interior alternating pattern (8 neighbors)
+    should produce 8 transitions.
+    """
+    pattern = [1, 0, 1, 0, 1, 0, 1, 0]
+    assert count_transitions(pattern) == 8
+
+
+def test_count_transitions_edge_case():
+    """
+    Edge pixel pattern (5 neighbors).
+    Should correctly count circular transitions.
+    Example:
+        [1, 1, 0, 0, 1]
+        Transitions:
+        1→1 (0)
+        1→0 (1)
+        0→0 (0)
+        0→1 (1)
+        1→1 wrap (0)
+        Total = 2
+    """
+    pattern = [1, 1, 0, 0, 1]
+    assert count_transitions(pattern) == 2
+
+
+def test_count_transitions_corner_case():
+    """
+    Corner pixel pattern (3 neighbors).
+    Example:
+        [1, 0, 1]
+        Transitions:
+        1→0 (1)
+        0→1 (1)
+        1→1 wrap (0)
+        Total = 2
+    """
+    pattern = [1, 0, 1]
+    assert count_transitions(pattern) == 2
+
+
+def test_count_transitions_empty():
+    """
+    Empty pattern should return 0 transitions.
+    """
+    assert count_transitions([]) == 0
+
+
+# -----------------------------
+# Error Handling
+# -----------------------------
+
+def test_count_transitions_invalid_type():
+    """
+    Non-list input should raise TypeError.
+    """
+    with pytest.raises(TypeError):
+        count_transitions("1010")  # type: ignore
+
+
+def test_count_transitions_invalid_values():
+    """
+    Pattern containing values other than 0 or 1
+    should raise ValueError.
+    """
+    with pytest.raises(ValueError):
+        count_transitions([1, 2, 0, 1])
+
+
+def test_count_transitions_negative_values():
+    """
+    Negative or non-binary values should raise ValueError.
+    """
+    with pytest.raises(ValueError):
+        count_transitions([1, -1, 0])
