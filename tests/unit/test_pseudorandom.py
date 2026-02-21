@@ -2,7 +2,9 @@ from src.core.pseudorandom import password_to_seed, generate_pixel_coordinates
 import pytest
 
 
-# --- Tests for password_to_seed ---
+# -----------------------------
+# Tests for password_to_seed
+# -----------------------------
 def test_password_to_seed():
     """
     Tests against your specific example: 'mypassword' → 9934964102539539065
@@ -54,7 +56,9 @@ def test_password_to_seed_empty_string():
         password_to_seed("")
 
 
-# --- Tests for generate_pixel_coordinates ---
+# -----------------------------
+# Tests for generate_pixel_coordinates
+# -----------------------------
 def test_pixel_gen_completeness():
     """Ensures every pixel is present in the list."""
 

@@ -4,7 +4,9 @@ import pytest
 import cv2
 
 
-# --- Tests for load_img ---
+# -----------------------------
+# Tests for load_img
+# -----------------------------
 @pytest.fixture
 def dummy_image_path(tmp_path):
     """Create a temporary 10x10 red BGR image for testing."""
@@ -68,7 +70,9 @@ def test_load_img_invalid_file(tmp_path):
         load_img(str(text_file))
 
 
-# --- Tests for img_to_grayscale ---
+# -----------------------------
+# Tests for img_to_grayscale
+# -----------------------------
 def test_img_to_grayscale_shape():
     """Tests that a (H, W, 3) image is converted to (H, W)."""
 
@@ -108,7 +112,9 @@ def test_img_to_grayscale_constant_values():
     assert np.all(gray == 128)
 
 
-# --- Tests for validate_image_size ---
+# -----------------------------
+# Tests for validate_image_size
+# -----------------------------
 def test_validate_image_size_match():
     """
     Ensures that a ValueError is raised when the input image does not have exactly two dimensions.

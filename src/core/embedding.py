@@ -3,6 +3,8 @@ Adaptive LSB steganography embedding module
 Handles secret message embedding into cover images
 """
 
+import numpy as np
+
 
 def text_to_binary(text: str) -> str:
     """
@@ -14,26 +16,47 @@ def text_to_binary(text: str) -> str:
     Returns:
         Binary string (e.g., "010010100101...")
     """
-    return ''.join(format(ord(char), '08b') for char in text)
+
+    if not isinstance(text, str):
+        raise TypeError("")
+
+    return "".join(format(ord(char), "08b") for char in text)
 
 
-def calculate_capacity(classification_map, num_channels):
+def calculate_capacity(classification_map: np.ndarray, num_channels: int = 3) -> int:
     """
     Calculate embedding capacity based on texture classification.
 
-    Capacity = 3 × (num_smooth × 1 + num_rough × 2)
+    Capacity = num_channels * (num_smooth * 1 + num_rough * 2)
 
     Args:
-        classification_map: Texture classification (0=smooth, 1=rough)
+        classification_map: Linear array of texture classification (0=smooth, 1=rough)
         num_channels: Number of color channels (default 3 for RGB)
 
     Returns:
         Total capacity in bits
+
+    Raises:
+        TypeError: If inputs are of incorrect type.
+        ValueError: If classification_map contains values other than 0 or 1.
     """
-    ...
+
+    if not isinstance(classification_map, np.ndarray):
+        raise TypeError("classification_map must be a numpy.ndarray.")
+
+    if not isinstance(num_channels, int):
+        raise TypeError("num_channels must be an integer.")
+
+    if num_channels <= 0:
+        raise ValueError("num_channels must be a positive integer.")
+
+    num_rough = np.count_nonzero(classification_map == 1)
+    num_smooth = np.count_nonzero(classification_map == 0)
+
+    return int(num_channels * (num_smooth * 1 + num_rough * 2))
 
 
-def embed_bits_in_pixel(pixel_rgb, bits, num_bits):
+def embed_bits_in_pixel(rgb_img: np.ndarray, bits: str, num_bits: int) -> np.ndarray:
     """
     Embed bits into a single RGB pixel using LSB substitution.
 
@@ -53,12 +76,12 @@ def embed_bits_in_pixel(pixel_rgb, bits, num_bits):
 
 
 def embed_message(
-    cover_image,
-    secret_message,
-    password,
-    classification_map,
-    pixel_coords,
-):
+    rgb_img: np.ndarray,
+    secret_message: str,
+    password: str,
+    classification_map: np.ndarray,
+    pixel_coords: list[tuple[int, int]],
+) -> np.ndarray:
     """
     Main embedding function.
 
