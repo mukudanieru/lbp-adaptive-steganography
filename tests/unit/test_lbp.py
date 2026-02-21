@@ -185,3 +185,17 @@ def test_count_transitions_negative_values():
     """
     with pytest.raises(ValueError):
         count_transitions([1, -1, 0])
+
+
+# -----------------------------
+# classify_texture
+# -----------------------------
+
+def test_classify_texture_smooth():
+    assert classify_texture(0) == 0
+    assert classify_texture(2) == 0
+
+
+def test_classify_texture_rough():
+    assert classify_texture(3) == 1
+    assert classify_texture(6) == 1
