@@ -199,3 +199,51 @@ def test_classify_texture_smooth():
 def test_classify_texture_rough():
     assert classify_texture(3) == 1
     assert classify_texture(6) == 1
+
+# -----------------------------
+# compute_lbp_for_pixel
+# -----------------------------
+
+
+def test_compute_lbp_for_pixel_smooth():
+    # All pixels same → smooth
+    msb_image = np.full((3, 3), 4, dtype=np.uint8)
+
+    result = compute_lbp_for_pixel(msb_image, x=1, y=1)
+
+    assert result == 0  # smooth
+
+
+def test_compute_lbp_for_pixel_rough():
+    # Checkerboard pattern → high transitions
+    msb_image = np.array([
+        [0, 7, 0],
+        [7, 4, 7],
+        [0, 7, 0],
+    ], dtype=np.uint8)
+
+    result = compute_lbp_for_pixel(msb_image, x=1, y=1)
+
+    assert result == 1  # rough
+
+
+# -----------------------------
+# compute_lbp_classification
+# -----------------------------
+
+def test_compute_lbp_classification_shape():
+    image = np.zeros((4, 6), dtype=np.uint8)
+
+    result = compute_lbp_classification(image)
+
+    assert result.shape == image.shape
+    assert result.dtype == np.uint8
+
+
+def test_compute_lbp_classification_uniform_image():
+    image = np.full((5, 5), 128, dtype=np.uint8)
+
+    result = compute_lbp_classification(image)
+
+    # Entire image should be smooth
+    assert np.all(result == 0)
