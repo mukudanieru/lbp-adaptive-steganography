@@ -23,6 +23,23 @@ def text_to_binary(text: str) -> str:
     return "".join(format(ord(char), "08b") for char in text)
 
 
+def get_binary_header(binary_message: str) -> str:
+    """
+    Get a 32-bit header representing the length of the binary message.
+
+    Args:
+        binary_message: Message in binary string
+
+    Returns:
+        32-bit binary string representing message length
+    """
+    if not isinstance(binary_message, str):
+        raise TypeError("binary_message must be a string")
+
+    message_length = len(binary_message)
+    return format(message_length & 0xFFFFFFFF, "032b")
+
+
 def calculate_capacity(classification_map: np.ndarray, num_channels: int = 3) -> int:
     """
     Calculate embedding capacity based on texture classification.
@@ -102,17 +119,3 @@ def embed_message(
     """
     ...
 
-
-def add_message_header(binary_message: str) -> str:
-    """
-    Add header with message length for extraction.
-
-    Header format: 32-bit message length + message bits
-
-    Args:
-        binary_message: Message in binary
-
-    Returns:
-        Binary with header prepended
-    """
-    ...
