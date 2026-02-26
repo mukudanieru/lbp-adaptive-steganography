@@ -89,7 +89,26 @@ def embed_bits_in_pixel(rgb_img: np.ndarray, bits: str, num_bits: int) -> np.nda
         pixel=[226, 137, 125], bits="101", num_bits=1
         → [227, 136, 125]  (only LSB changed)
     """
-    ...
+    
+    pixel = rgb_img.copy()
+    bit_index = 0
+
+    for channel in range(3):
+        if bit_index >= len(bits):
+            break
+
+        bits_to_embed = bits[bit_index:bit_index + num_bits]
+        bit_index += num_bits
+
+        if len(bits_to_embed) == 0:
+            break
+
+        embed_value = int(bits_to_embed, 2)
+
+        mask = 0xFF << num_bits & 0xFF
+        pixel[channel] = (pixel[channel] & mask) | embed_value
+    
+    return pixel
 
 
 def embed_message(
