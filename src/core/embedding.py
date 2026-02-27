@@ -89,7 +89,7 @@ def embed_bits_in_pixel(rgb_img: np.ndarray, bits: str, num_bits: int) -> np.nda
         pixel=[226, 137, 125], bits="101", num_bits=1
         → [227, 136, 125]  (only LSB changed)
     """
-    
+
     pixel = rgb_img.copy()
     bit_index = 0
 
@@ -107,34 +107,118 @@ def embed_bits_in_pixel(rgb_img: np.ndarray, bits: str, num_bits: int) -> np.nda
 
         mask = 0xFF << num_bits & 0xFF
         pixel[channel] = (pixel[channel] & mask) | embed_value
-    
+
     return pixel
 
 
 def embed_message(
     rgb_img: np.ndarray,
     secret_message: str,
-    password: str,
+    password: str,  # retained for consistency
     classification_map: np.ndarray,
     pixel_coords: list[tuple[int, int]],
 ) -> np.ndarray:
     """
-    Main embedding function.
+    Embed a secret message into an RGB image using texture-adaptive LSB.
 
-    Embeds secret message into cover image using texture-adaptive LSB.
+    Embedding strategy:
+        - Convert message to binary
+        - Prepend 32-bit header (message length in bits)
+        - Smooth pixel  (0) → 1 LSB per channel
+        - Rough pixel   (1) → 2 LSBs per channel
 
     Args:
-        cover_image: RGB cover image
-        secret_message: Text to hide
-        password: Password for pixel selection
-        classification_map: Texture classification map
-        pixel_coords: Pseudorandom pixel coordinates
+        rgb_img: Cover image (H, W, 3), dtype uint8
+        secret_message: Text message to hide
+        password: Password (used externally for coordinate generation)
+        classification_map: (H, W) array with values {0,1}
+        pixel_coords: List of (y, x) coordinates in embedding order
 
     Returns:
-        Stego-image with embedded message
+        Stego-image (NumPy array)
 
     Raises:
-        ValueError: If message exceeds capacity
+        TypeError, ValueError
     """
-    ...
 
+    # -------------------------
+    # Validation
+    # -------------------------
+    if not isinstance(rgb_img, np.ndarray):
+        raise TypeError("rgb_img must be a NumPy array")
+
+    if rgb_img.ndim != 3 or rgb_img.shape[2] != 3:
+        raise ValueError("rgb_img must have shape (H, W, 3)")
+
+    if rgb_img.dtype != np.uint8:
+        raise ValueError("rgb_img must be dtype uint8")
+
+    if not isinstance(secret_message, str):
+        raise TypeError("secret_message must be a string")
+
+    if not isinstance(classification_map, np.ndarray):
+        raise TypeError("classification_map must be a NumPy array")
+
+    if classification_map.shape != rgb_img.shape[:2]:
+        raise ValueError("classification_map must match image dimensions")
+
+    if not isinstance(pixel_coords, list):
+        raise TypeError("pixel_coords must be a list of (y, x) tuples")
+
+    # -------------------------
+    # Prepare message bits
+    # -------------------------
+    binary_message = text_to_binary(secret_message)
+    header = get_binary_header(binary_message)
+    payload = header + binary_message
+    total_bits = len(payload)
+
+    # -------------------------
+    # Capacity check
+    # -------------------------
+    capacity = calculate_capacity(classification_map)
+
+    if total_bits > capacity:
+        raise ValueError(
+            f"Message too large. Required {total_bits} bits, "
+            f"capacity is {capacity} bits."
+        )
+
+    # -------------------------
+    # Embedding process
+    # -------------------------
+    stego_img = rgb_img.copy()
+    bit_pointer = 0
+
+    height, width, _ = stego_img.shape
+
+    for (y, x) in pixel_coords:
+
+        if bit_pointer >= total_bits:
+            break
+
+        if not (0 <= y < height and 0 <= x < width):
+            raise ValueError("Pixel coordinate out of bounds")
+
+        texture = classification_map[y, x]
+
+        # Determine embedding strength
+        bits_per_channel = 1 if texture == 0 else 2
+        bits_per_pixel = bits_per_channel * 3
+
+        # Extract chunk for this pixel
+        chunk = payload[bit_pointer: bit_pointer + bits_per_pixel]
+
+        # Embed into pixel
+        modified_pixel = embed_bits_in_pixel(
+            stego_img[y, x],
+            chunk,
+            bits_per_channel
+        )
+
+        stego_img[y, x] = modified_pixel
+
+        # Move pointer by actual bits embedded
+        bit_pointer += len(chunk)
+
+    return stego_img
