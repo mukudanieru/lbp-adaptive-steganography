@@ -1,0 +1,12 @@
+cover,stego,size,bits,bpp,mse,psnr,ssim
+airplane.png,airplane_stego.png,512x512,78643,0.3,0.053912,60.814,0.999546
+carabao.png,carabao_stego.png,512x512,78643,0.3,0.057561,60.5295,0.999599
+dondon.png,dondon_stego.png,512x512,78643,0.3,0.051426,61.019,0.999291
+house.png,house_stego.png,512x512,78643,0.3,0.057793,60.5121,0.999666
+infp.png,infp_stego.png,512x512,78643,0.3,0.067657,59.8276,0.999801
+layatdiwa.png,layatdiwa_stego.png,512x512,78643,0.3,0.054719,60.7494,0.999432
+mandrill.png,mandrill_stego.png,512x512,78643,0.3,0.072446,59.5306,0.99987
+peppers.png,peppers_stego.png,512x512,78643,0.3,0.060658,60.302,0.999601
+sailboat.png,sailboat_stego.png,512x512,78643,0.3,0.061272,60.2582,0.999702
+splash.png,splash_stego.png,512x512,78643,0.3,0.05365,60.8351,0.999428
+vase.png,vase_stego.png,512x512,78643,0.3,0.061347,60.2529,0.999692
