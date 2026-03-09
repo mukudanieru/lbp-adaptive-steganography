@@ -23,7 +23,7 @@ def load_img(file: str) -> np.ndarray:
     img = cv2.imread(file, cv2.IMREAD_COLOR)
 
     if img is None:
-        raise FileNotFoundError(f"Image file not found: {file}")
+        raise FileNotFoundError(f"image file not found: {file}")
 
     return img
 
@@ -60,7 +60,7 @@ def extract_3msb(gray_img: np.ndarray) -> np.ndarray:
         NumPy array of shape (H, W), dtype uint8, values in range 0-7
     """
     if gray_img.dtype != np.uint8:
-        raise ValueError("Input image must be of dtype uint8")
+        raise ValueError("input image must be of dtype uint8")
 
     # Keep only the 3 most significant bits
     return np.right_shift(gray_img, 5)
@@ -71,10 +71,10 @@ def validate_image_size(gray_img: np.ndarray, expected_size: tuple[int, int]) ->
     Validate that a grayscale image has expected (height, width).
     """
     if gray_img.ndim != 2:
-        raise ValueError("Input must have at least 2 dimensions")
+        raise ValueError("input must have at least 2 dimensions")
 
     if len(expected_size) != 2:
-        raise ValueError("Expected_size must be (height, width)")
+        raise ValueError("expected_size must be (height, width)")
 
     h, w = gray_img.shape
     expected_h, expected_w = expected_size

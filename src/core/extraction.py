@@ -58,7 +58,6 @@ def extract_message_length(
     Returns:
         Message length in bits
     """
-
     if not isinstance(stego_image, np.ndarray):
         raise TypeError("stego_image must be a NumPy array")
 
@@ -71,7 +70,6 @@ def extract_message_length(
     height, width, _ = stego_image.shape
 
     for y, x in pixel_coords:
-
         if not (0 <= y < height and 0 <= x < width):
             raise ValueError("Pixel coordinate out of bounds")
 
@@ -103,12 +101,12 @@ def binary_to_text(binary_string: str) -> str:
         return ""
 
     if len(binary_string) % 8 != 0:
-        raise ValueError("Binary string length must be multiple of 8")
+        raise ValueError("binary string length must be multiple of 8")
 
     chars: list[str] = []
 
     for i in range(0, len(binary_string), 8):
-        byte: str = binary_string[i:i + 8]
+        byte: str = binary_string[i : i + 8]
         chars.append(chr(int(byte, 2)))
 
     return "".join(chars)
@@ -116,7 +114,6 @@ def binary_to_text(binary_string: str) -> str:
 
 def extract_message(
     stego_image: np.ndarray,
-    password: str,
     classification_map: np.ndarray,
     pixel_coords: Sequence[Tuple[int, int]],
 ) -> str:
@@ -134,15 +131,18 @@ def extract_message(
     Returns:
         Extracted secret message
     """
+    # -------------------------
+    # Validation
+    # -------------------------
     if not isinstance(stego_image, np.ndarray):
         raise TypeError("stego_image must be a NumPy array")
-
-    if not isinstance(password, str):
-        raise TypeError("password must be a string")
 
     if classification_map.shape != stego_image.shape[:2]:
         raise ValueError("classification_map must match image dimensions")
 
+    # -------------------------
+    # Extracting process
+    # -------------------------
     message_length: int = extract_message_length(
         stego_image,
         classification_map,
@@ -157,9 +157,8 @@ def extract_message(
     height, width, _ = stego_image.shape
 
     for y, x in pixel_coords:
-
         if not (0 <= y < height and 0 <= x < width):
-            raise ValueError("Pixel coordinate out of bounds")
+            raise ValueError("pixel coordinate out of bounds")
 
         texture_type: int = int(classification_map[y, x])
         bits_per_channel: int = 1 if texture_type == 0 else 2
@@ -175,8 +174,8 @@ def extract_message(
             break
 
     if len(extracted_bits) < total_required_bits:
-        raise ValueError("Insufficient data to extract full message")
+        raise ValueError("insufficient data to extract full message")
 
-    message_bits: str = extracted_bits[32:32 + message_length]
+    message_bits: str = extracted_bits[32 : 32 + message_length]
 
     return binary_to_text(message_bits)

@@ -16,9 +16,8 @@ def text_to_binary(text: str) -> str:
     Returns:
         Binary string (e.g., "010010100101...")
     """
-
     if not isinstance(text, str):
-        raise TypeError("")
+        raise TypeError("text must be a string")
 
     return "".join(format(ord(char), "08b") for char in text)
 
@@ -57,7 +56,6 @@ def calculate_capacity(classification_map: np.ndarray, num_channels: int = 3) ->
         TypeError: If inputs are of incorrect type.
         ValueError: If classification_map contains values other than 0 or 1.
     """
-
     if not isinstance(classification_map, np.ndarray):
         raise TypeError("classification_map must be a numpy.ndarray.")
 
@@ -89,6 +87,31 @@ def embed_bits_in_pixel(rgb_img: np.ndarray, bits: str, num_bits: int) -> np.nda
         pixel=[226, 137, 125], bits="101", num_bits=1
         → [227, 136, 125]  (only LSB changed)
     """
+    if not isinstance(rgb_img, np.ndarray):
+        raise TypeError("rgb_img must be a numpy ndarray")
+
+    if not isinstance(bits, str):
+        raise TypeError("bits must be a string")
+
+    if not isinstance(num_bits, int):
+        raise TypeError("num_bits must be an integer")
+
+    if num_bits not in (1, 2):
+        raise ValueError("num_bits must be 1 or 2")
+
+    if len(rgb_img) != 3:
+        raise ValueError("rgb_img must contain exactly 3 values (R, G, B)")
+
+    if any((v < 0 or v > 255) for v in rgb_img):
+        raise ValueError("RGB values must be in range 0-255")
+
+    if not all(b in "01" for b in bits):
+        raise ValueError("bits must be a binary string containing only '0' and '1'")
+
+    if len(bits) > 3 * num_bits:
+        raise ValueError(
+            f"Too many bits to embed: max {3 * num_bits} bits for num_bits={num_bits}"
+        )
 
     pixel = rgb_img.copy()
     bit_index = 0
@@ -97,7 +120,7 @@ def embed_bits_in_pixel(rgb_img: np.ndarray, bits: str, num_bits: int) -> np.nda
         if bit_index >= len(bits):
             break
 
-        bits_to_embed = bits[bit_index:bit_index + num_bits]
+        bits_to_embed = bits[bit_index : bit_index + num_bits]
         bit_index += num_bits
 
         if len(bits_to_embed) == 0:
@@ -114,7 +137,6 @@ def embed_bits_in_pixel(rgb_img: np.ndarray, bits: str, num_bits: int) -> np.nda
 def embed_message(
     rgb_img: np.ndarray,
     secret_message: str,
-    password: str,  # retained for consistency
     classification_map: np.ndarray,
     pixel_coords: list[tuple[int, int]],
 ) -> np.ndarray:
@@ -130,7 +152,6 @@ def embed_message(
     Args:
         rgb_img: Cover image (H, W, 3), dtype uint8
         secret_message: Text message to hide
-        password: Password (used externally for coordinate generation)
         classification_map: (H, W) array with values {0,1}
         pixel_coords: List of (y, x) coordinates in embedding order
 
@@ -140,7 +161,6 @@ def embed_message(
     Raises:
         TypeError, ValueError
     """
-
     # -------------------------
     # Validation
     # -------------------------
@@ -192,8 +212,7 @@ def embed_message(
 
     height, width, _ = stego_img.shape
 
-    for (y, x) in pixel_coords:
-
+    for y, x in pixel_coords:
         if bit_pointer >= total_bits:
             break
 
@@ -207,14 +226,10 @@ def embed_message(
         bits_per_pixel = bits_per_channel * 3
 
         # Extract chunk for this pixel
-        chunk = payload[bit_pointer: bit_pointer + bits_per_pixel]
+        chunk = payload[bit_pointer : bit_pointer + bits_per_pixel]
 
         # Embed into pixel
-        modified_pixel = embed_bits_in_pixel(
-            stego_img[y, x],
-            chunk,
-            bits_per_channel
-        )
+        modified_pixel = embed_bits_in_pixel(stego_img[y, x], chunk, bits_per_channel)
 
         stego_img[y, x] = modified_pixel
 

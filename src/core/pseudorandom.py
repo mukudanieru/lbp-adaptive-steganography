@@ -11,7 +11,6 @@ def password_to_seed(password: str) -> int:
     """
     Generate a deterministic 64-bit integer seed from a password string.
     """
-
     if not isinstance(password, str):
         raise TypeError("password must be a string")
 
@@ -43,7 +42,6 @@ def generate_pixel_coordinates(
         TypeError: If inputs are not integers.
         ValueError: If height or width is negative.
     """
-
     if (
         not isinstance(height, int)
         or not isinstance(width, int)

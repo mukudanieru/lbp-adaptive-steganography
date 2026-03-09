@@ -2,7 +2,7 @@
 Local Binary Pattern (LBP) module
 Handles texture analysis and pixel classification
 """
-from typing import List, Tuple
+
 from typing import List, Tuple, Literal
 import numpy as np
 from src.core.preprocessing import extract_3msb
@@ -25,13 +25,33 @@ def get_neighbors(image: np.ndarray, x: int, y: int) -> List[Tuple[int, int]]:
         - Edge pixels: 5 neighbors
         - Corner pixels: 3 neighbors
     """
+    if image is None or image.size == 0:
+        raise ValueError("image cannot be empty or None")
+
+    if len(image.shape) < 2:
+        raise ValueError("image must have at least 2 dimensions")
+
+    if not isinstance(x, (int, np.integer)) or not isinstance(y, (int, np.integer)):
+        raise ValueError("coordinates must be integers")
+
     height, width = image.shape
+
+    if not (0 <= x < width):
+        raise ValueError(f"X coordinate must be between 0 and {width - 1}")
+
+    if not (0 <= y < height):
+        raise ValueError(f"Y coordinate must be between 0 and {height - 1}")
+
     neighbors: List[Tuple[int, int]] = []
 
     directions: List[Tuple[int, int]] = [
-        (-1, -1), (-1, 0), (-1, 1),
+        (-1, -1),
+        (-1, 0),
+        (-1, 1),
         (0, 1),
-        (1, 1), (1, 0), (1, -1),
+        (1, 1),
+        (1, 0),
+        (1, -1),
         (0, -1),
     ]
 
@@ -123,7 +143,7 @@ def compute_lbp_for_pixel(msb_image: np.ndarray, x: int, y: int) -> int:
     Compute LBP-based texture classification for a single pixel.
 
     Args:
-        msb_image: 2D NumPy array (values 0–7), already reduced to 3-MSB
+        msb_image: 2D NumPy array (values 0-7), already reduced to 3-MSB
         x: X coordinate
         y: Y coordinate
 
@@ -135,8 +155,6 @@ def compute_lbp_for_pixel(msb_image: np.ndarray, x: int, y: int) -> int:
         TypeError: If msb_image is not a NumPy array
         ValueError: If coordinates are out of bounds
     """
-
-    # --- Validation ---
     if not isinstance(msb_image, np.ndarray):
         raise TypeError("msb_image must be a NumPy array")
 
@@ -148,16 +166,15 @@ def compute_lbp_for_pixel(msb_image: np.ndarray, x: int, y: int) -> int:
     if not (0 <= x < width and 0 <= y < height):
         raise ValueError("Pixel coordinates out of bounds")
 
-    # --- Core LBP Logic ---
+    # -------------------------
+    # Core LBP Logic
+    # -------------------------
     center_value: int = int(msb_image[y, x])
 
     neighbors_coords: List[Tuple[int, int]] = get_neighbors(msb_image, x, y)
-    neighbor_values: List[int] = [
-        int(msb_image[ny, nx]) for ny, nx in neighbors_coords
-    ]
+    neighbor_values: List[int] = [int(msb_image[ny, nx]) for ny, nx in neighbors_coords]
 
-    binary_pattern: List[int] = compare_neighbors(
-        center_value, neighbor_values)
+    binary_pattern: List[int] = compare_neighbors(center_value, neighbor_values)
 
     transition_count: int = count_transitions(binary_pattern)
 
@@ -182,8 +199,6 @@ def compute_lbp_classification(grayscale_image: np.ndarray) -> np.ndarray:
     Raises:
         ValueError: If input is not 2D uint8 image
     """
-
-    # --- Validation ---
     if not isinstance(grayscale_image, np.ndarray):
         raise TypeError("grayscale_image must be a NumPy array")
 
@@ -195,15 +210,15 @@ def compute_lbp_classification(grayscale_image: np.ndarray) -> np.ndarray:
 
     height, width = grayscale_image.shape
 
-    # --- Use preprocessing module ---
+    # -------------------------
+    # Use preprocessing module
+    # -------------------------
     msb_image = extract_3msb(grayscale_image)
 
     classification_map = np.zeros((height, width), dtype=np.uint8)
 
     for y in range(height):
         for x in range(width):
-            classification_map[y, x] = compute_lbp_for_pixel(
-                msb_image, x, y
-            )
+            classification_map[y, x] = compute_lbp_for_pixel(msb_image, x, y)
 
     return classification_map
