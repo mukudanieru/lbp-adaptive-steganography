@@ -71,7 +71,7 @@ def extract_message_length(
 
     for y, x in pixel_coords:
         if not (0 <= y < height and 0 <= x < width):
-            raise ValueError("Pixel coordinate out of bounds")
+            raise ValueError("pixel coordinate out of bounds")
 
         texture_type: int = int(classification_map[y, x])
         bits_per_channel: int = 1 if texture_type == 0 else 2
@@ -87,7 +87,7 @@ def extract_message_length(
             break
 
     if len(header_bits) < 32:
-        raise ValueError("Insufficient data to extract header")
+        raise ValueError("insufficient data to extract header")
 
     return int(header_bits[:32], 2)
 
