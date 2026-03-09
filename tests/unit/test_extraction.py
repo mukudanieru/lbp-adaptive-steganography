@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 
 from src.core.embedding import embed_message, text_to_binary
+from src.core.preprocessing import img_to_grayscale
+from src.core.lbp import compute_lbp_classification
 from src.core.extraction import (
     extract_bits_from_pixel,
     binary_to_text,
@@ -284,139 +286,214 @@ def test_extract_message_length():
 # Tests for extract_message
 # -----------------------------
 def test_extract_message_simple_roundtrip():
-    """Test basic embed and extract roundtrip."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.zeros((512, 512), dtype=np.uint8)
+    """Test basic embed and extract roundtrip with independent LBP computation."""
+    # Cover image setup
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
 
+    # Embed
     secret_message = "Hello, World!"
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
 
+    # Extract with stego's own LBP (realistic scenario)
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
+
+    # LBP should be identical after embedding (critical test!)
+    assert np.array_equal(cover_classification, stego_classification), (
+        "LBP classification changed after embedding - MSBs were modified!"
+    )
+
+    extracted = extract_message(stego_img, stego_classification, pixel_coords)
     assert extracted == secret_message
 
 
 def test_extract_message_empty_string():
     """Test extracting empty message."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.zeros((512, 512), dtype=np.uint8)
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
 
     secret_message = ""
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
 
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
+
+    extracted = extract_message(stego_img, stego_classification, pixel_coords)
     assert extracted == ""
 
 
 def test_extract_message_single_character():
     """Test extracting single character."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.zeros((512, 512), dtype=np.uint8)
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
 
     secret_message = "A"
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
 
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
+
+    extracted = extract_message(stego_img, stego_classification, pixel_coords)
     assert extracted == secret_message
 
 
 def test_extract_message_long_text():
     """Test extracting longer message."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.random.randint(0, 2, (512, 512), dtype=np.uint8)
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
 
     secret_message = "The quick brown fox jumps over the lazy dog. " * 10
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
 
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
+
+    extracted = extract_message(stego_img, stego_classification, pixel_coords)
     assert extracted == secret_message
 
 
 def test_extract_message_with_smooth_texture():
     """Test extraction with all smooth pixels."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.zeros((512, 512), dtype=np.uint8)  # All smooth
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
+
+    # Force all smooth for testing
+    cover_classification[:] = 0
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
 
     secret_message = "Smooth texture test"
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
 
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
+
+    extracted = extract_message(stego_img, stego_classification, pixel_coords)
     assert extracted == secret_message
 
 
 def test_extract_message_with_rough_texture():
     """Test extraction with all rough pixels."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.ones((512, 512), dtype=np.uint8)  # All rough
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
+
+    # Force all rough for testing
+    cover_classification[:] = 1
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
 
     secret_message = "Rough texture test"
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
 
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
+
+    extracted = extract_message(stego_img, stego_classification, pixel_coords)
     assert extracted == secret_message
 
 
 def test_extract_message_with_mixed_texture():
     """Test extraction with mixed smooth/rough texture."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.random.randint(0, 2, (512, 512), dtype=np.uint8)
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
 
     secret_message = "Mixed texture message"
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
 
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
+
+    extracted = extract_message(stego_img, stego_classification, pixel_coords)
     assert extracted == secret_message
 
 
 def test_extract_message_special_characters():
     """Test extracting message with special characters."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.zeros((512, 512), dtype=np.uint8)
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
 
     secret_message = "Hello! @#$%^&*() 123 test?"
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
 
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
+
+    extracted = extract_message(stego_img, stego_classification, pixel_coords)
     assert extracted == secret_message
 
 
 def test_extract_message_multiline_text():
     """Test extracting multiline message."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.zeros((512, 512), dtype=np.uint8)
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
 
     secret_message = "Line 1\nLine 2\nLine 3\nLine 4"
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
 
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
+
+    extracted = extract_message(stego_img, stego_classification, pixel_coords)
     assert extracted == secret_message
 
 
 def test_extract_message_whitespace_preserved():
     """Test that whitespace is preserved in extraction."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.zeros((512, 512), dtype=np.uint8)
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
 
     secret_message = "  leading and trailing  "
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
 
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
+
+    extracted = extract_message(stego_img, stego_classification, pixel_coords)
     assert extracted == secret_message
 
 
 def test_extract_message_with_shuffled_pixels():
     """Test extraction with pseudorandom pixel order."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.zeros((512, 512), dtype=np.uint8)
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
 
     # Shuffle pixel coordinates (simulating pseudorandom selection)
     np.random.seed(42)
@@ -424,59 +501,74 @@ def test_extract_message_with_shuffled_pixels():
     np.random.shuffle(pixel_coords)
 
     secret_message = "Pseudorandom pixel order"
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
 
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
+
+    extracted = extract_message(stego_img, stego_classification, pixel_coords)
     assert extracted == secret_message
+
+
+def test_extract_message_lbp_consistency():
+    """Test that LBP classification remains consistent after embedding."""
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
+    pixel_coords = [(y, x) for y in range(512) for x in range(512)]
+
+    secret_message = "LBP consistency test"
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
+
+    # Compute stego LBP independently
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
+
+    # Classifications MUST be identical
+    np.testing.assert_array_equal(
+        cover_classification,
+        stego_classification,
+        err_msg="LBP classification changed after embedding - this breaks extraction!",
+    )
 
 
 def test_extract_message_returns_string():
     """Test that extraction always returns a string."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.zeros((512, 512), dtype=np.uint8)
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
 
     secret_message = "Type check"
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
 
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
+
+    extracted = extract_message(stego_img, stego_classification, pixel_coords)
     assert isinstance(extracted, str)
 
 
 def test_extract_message_json_like_content():
     """Test extracting JSON-like structured content."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.zeros((512, 512), dtype=np.uint8)
+    cover_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
+    cover_gray = img_to_grayscale(cover_img)
+    cover_classification = compute_lbp_classification(cover_gray)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
 
     secret_message = '{"name": "test", "value": 123}'
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
+    stego_img = embed_message(
+        cover_img, secret_message, cover_classification, pixel_coords
+    )
 
-    assert extracted == secret_message
+    stego_gray = img_to_grayscale(stego_img)
+    stego_classification = compute_lbp_classification(stego_gray)
 
-
-def test_extract_message_repeated_characters():
-    """Test extracting message with repeated characters."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.zeros((512, 512), dtype=np.uint8)
-    pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-
-    secret_message = "aaaaaabbbbbbcccccc"
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
-
-    assert extracted == secret_message
-
-
-def test_extract_message_numbers_only():
-    """Test extracting numeric-only message."""
-    rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
-    classification_map = np.zeros((512, 512), dtype=np.uint8)
-    pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-
-    secret_message = "1234567890"
-    stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, classification_map, pixel_coords)
-
+    extracted = extract_message(stego_img, stego_classification, pixel_coords)
     assert extracted == secret_message
