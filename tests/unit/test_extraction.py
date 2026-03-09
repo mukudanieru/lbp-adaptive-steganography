@@ -288,12 +288,10 @@ def test_extract_message_simple_roundtrip():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.zeros((512, 512), dtype=np.uint8)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "test123"
 
     secret_message = "Hello, World!"
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == secret_message
 
@@ -303,12 +301,10 @@ def test_extract_message_empty_string():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.zeros((512, 512), dtype=np.uint8)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "pass"
 
     secret_message = ""
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == ""
 
@@ -318,12 +314,10 @@ def test_extract_message_single_character():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.zeros((512, 512), dtype=np.uint8)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "secret"
 
     secret_message = "A"
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == secret_message
 
@@ -333,12 +327,10 @@ def test_extract_message_long_text():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.random.randint(0, 2, (512, 512), dtype=np.uint8)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "longpass123"
 
     secret_message = "The quick brown fox jumps over the lazy dog. " * 10
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == secret_message
 
@@ -348,12 +340,10 @@ def test_extract_message_with_smooth_texture():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.zeros((512, 512), dtype=np.uint8)  # All smooth
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "smooth"
 
     secret_message = "Smooth texture test"
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == secret_message
 
@@ -363,12 +353,10 @@ def test_extract_message_with_rough_texture():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.ones((512, 512), dtype=np.uint8)  # All rough
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "rough"
 
     secret_message = "Rough texture test"
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == secret_message
 
@@ -378,12 +366,10 @@ def test_extract_message_with_mixed_texture():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.random.randint(0, 2, (512, 512), dtype=np.uint8)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "mixed"
 
     secret_message = "Mixed texture message"
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == secret_message
 
@@ -393,12 +379,10 @@ def test_extract_message_special_characters():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.zeros((512, 512), dtype=np.uint8)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "special!@#"
 
     secret_message = "Hello! @#$%^&*() 123 test?"
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == secret_message
 
@@ -408,12 +392,10 @@ def test_extract_message_multiline_text():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.zeros((512, 512), dtype=np.uint8)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "multiline"
 
     secret_message = "Line 1\nLine 2\nLine 3\nLine 4"
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == secret_message
 
@@ -423,12 +405,10 @@ def test_extract_message_whitespace_preserved():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.zeros((512, 512), dtype=np.uint8)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "whitespace"
 
     secret_message = "  leading and trailing  "
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == secret_message
 
@@ -443,11 +423,9 @@ def test_extract_message_with_shuffled_pixels():
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
     np.random.shuffle(pixel_coords)
 
-    password = "shuffled"
     secret_message = "Pseudorandom pixel order"
-
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == secret_message
 
@@ -457,12 +435,10 @@ def test_extract_message_returns_string():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.zeros((512, 512), dtype=np.uint8)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "typecheck"
 
     secret_message = "Type check"
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert isinstance(extracted, str)
 
@@ -472,12 +448,10 @@ def test_extract_message_json_like_content():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.zeros((512, 512), dtype=np.uint8)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "json"
 
     secret_message = '{"name": "test", "value": 123}'
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == secret_message
 
@@ -487,12 +461,10 @@ def test_extract_message_repeated_characters():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.zeros((512, 512), dtype=np.uint8)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "repeat"
 
     secret_message = "aaaaaabbbbbbcccccc"
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == secret_message
 
@@ -502,11 +474,9 @@ def test_extract_message_numbers_only():
     rgb_img = np.random.randint(0, 256, (512, 512, 3), dtype=np.uint8)
     classification_map = np.zeros((512, 512), dtype=np.uint8)
     pixel_coords = [(y, x) for y in range(512) for x in range(512)]
-    password = "numbers"
 
     secret_message = "1234567890"
     stego_img = embed_message(rgb_img, secret_message, classification_map, pixel_coords)
-
-    extracted = extract_message(stego_img, password, classification_map, pixel_coords)
+    extracted = extract_message(stego_img, classification_map, pixel_coords)
 
     assert extracted == secret_message
