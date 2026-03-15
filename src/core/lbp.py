@@ -181,15 +181,13 @@ def compute_lbp_for_pixel(msb_image: np.ndarray, x: int, y: int) -> int:
     return classify_texture(transition_count)
 
 
-def compute_lbp_classification(grayscale_image: np.ndarray) -> np.ndarray:
+def compute_lbp_classification(rgb_img: np.ndarray) -> np.ndarray:
     """
-    Compute texture classification for entire image using 3-MSB LBP.
-
-    This function assumes a valid grayscale uint8 image (0-255).
-    It delegates 3-MSB extraction to the preprocessing module.
+    Compute texture classification for an image using 3-MSB LBP
+    applied to the green channel.
 
     Args:
-        grayscale_image: NumPy array (H, W), dtype uint8
+        rgb_img: NumPy array (H, W, 3), dtype uint8
 
     Returns:
         Classification map: NumPy array (H, W), dtype uint8
@@ -197,23 +195,26 @@ def compute_lbp_classification(grayscale_image: np.ndarray) -> np.ndarray:
         1 → rough
 
     Raises:
+        TypeError: If input is not a NumPy array
         ValueError: If input is not 2D uint8 image
     """
-    if not isinstance(grayscale_image, np.ndarray):
-        raise TypeError("grayscale_image must be a NumPy array")
+    if not isinstance(rgb_img, np.ndarray):
+        raise TypeError("rgb_img must be a NumPy array")
 
-    if grayscale_image.ndim != 2:
-        raise ValueError("Input must be a 2D grayscale image")
+    if rgb_img.dtype != np.uint8:
+        raise ValueError("rgb_img must be dtype uint8")
 
-    if grayscale_image.dtype != np.uint8:
-        raise ValueError("Grayscale image must be dtype uint8")
+    if rgb_img.ndim != 3 or rgb_img.shape[2] != 3:
+        raise ValueError("rgb_img must have shape (H, W, 3)")
 
-    height, width = grayscale_image.shape
+    # Extract green channel (OpenCV uses BGR, green index = 1)
+    green_channel = rgb_img[:, :, 1]
+    height, width = green_channel.shape
 
     # -------------------------
     # Use preprocessing module
     # -------------------------
-    msb_image = extract_3msb(grayscale_image)
+    msb_image = extract_3msb(green_channel)
 
     classification_map = np.zeros((height, width), dtype=np.uint8)
 
