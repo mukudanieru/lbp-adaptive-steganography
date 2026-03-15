@@ -39,7 +39,7 @@ def get_binary_header(binary_message: str) -> str:
     return format(message_length & 0xFFFFFFFF, "032b")
 
 
-def calculate_capacity(classification_map: np.ndarray, num_channels: int = 3) -> int:
+def calculate_capacity(classification_map: np.ndarray, num_channels: int = 2) -> int:
     """
     Calculate embedding capacity based on texture classification.
 
@@ -47,7 +47,7 @@ def calculate_capacity(classification_map: np.ndarray, num_channels: int = 3) ->
 
     Args:
         classification_map: Linear array of texture classification (0=smooth, 1=rough)
-        num_channels: Number of color channels (default 3 for RGB)
+        num_channels: Number of color channels used for embedding (default 2 for R&B only)
 
     Returns:
         Total capacity in bits
@@ -108,15 +108,16 @@ def embed_bits_in_pixel(rgb_img: np.ndarray, bits: str, num_bits: int) -> np.nda
     if not all(b in "01" for b in bits):
         raise ValueError("bits must be a binary string containing only '0' and '1'")
 
-    if len(bits) > 3 * num_bits:
+    if len(bits) > 2 * num_bits:
         raise ValueError(
-            f"Too many bits to embed: max {3 * num_bits} bits for num_bits={num_bits}"
+            f"Too many bits to embed: max {2 * num_bits} bits for num_bits={num_bits}"
         )
 
     pixel = rgb_img.copy()
     bit_index = 0
 
-    for channel in range(3):
+    # Embed in R and B channels only (indices 0 and 2)
+    for channel in [0, 2]:  # Red and Blue only
         if bit_index >= len(bits):
             break
 
@@ -131,6 +132,7 @@ def embed_bits_in_pixel(rgb_img: np.ndarray, bits: str, num_bits: int) -> np.nda
         mask = 0xFF << num_bits & 0xFF
         pixel[channel] = (pixel[channel] & mask) | embed_value
 
+    # Green channel (index 1) remains unchanged
     return pixel
 
 
@@ -196,6 +198,7 @@ def embed_message(
     # -------------------------
     # Capacity check
     # -------------------------
+    num_channels = 2
     capacity = calculate_capacity(classification_map)
 
     if total_bits > capacity:
@@ -223,7 +226,7 @@ def embed_message(
 
         # Determine embedding strength
         bits_per_channel = 1 if texture == 0 else 2
-        bits_per_pixel = bits_per_channel * 3
+        bits_per_pixel = bits_per_channel * num_channels
 
         # Extract chunk for this pixel
         chunk = payload[bit_pointer : bit_pointer + bits_per_pixel]
