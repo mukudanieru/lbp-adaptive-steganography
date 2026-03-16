@@ -5,7 +5,6 @@ Handles texture analysis and pixel classification
 
 from typing import List, Tuple, Literal
 import numpy as np
-from src.core.preprocessing import extract_3msb
 
 
 def get_neighbors(image: np.ndarray, x: int, y: int) -> List[Tuple[int, int]]:
@@ -214,12 +213,10 @@ def compute_lbp_classification(rgb_img: np.ndarray) -> np.ndarray:
     # -------------------------
     # Use preprocessing module
     # -------------------------
-    msb_image = extract_3msb(green_channel)
-
     classification_map = np.zeros((height, width), dtype=np.uint8)
 
     for y in range(height):
         for x in range(width):
-            classification_map[y, x] = compute_lbp_for_pixel(msb_image, x, y)
+            classification_map[y, x] = compute_lbp_for_pixel(green_channel, x, y)
 
     return classification_map

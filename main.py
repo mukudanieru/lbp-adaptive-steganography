@@ -1,6 +1,5 @@
 """
 Main entry point for Adaptive Texture-Based LSB Steganography
-(Hardcoded configuration version)
 """
 
 import cv2
