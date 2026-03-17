@@ -8,16 +8,26 @@ import numpy as np
 
 def text_to_binary(text: str) -> str:
     """
-    Convert text message to binary string.
+    Convert an ASCII text message into a binary string.
+
+    Each character is encoded using 8-bit ASCII representation,
+    ensuring a fixed-width output suitable for steganographic embedding.
 
     Args:
         text: Secret message
 
     Returns:
-        Binary string (e.g., "010010100101...")
+        a continuous binary string (e.g., "010010100101...")
+
+    Raises:
+        TypeError: If `text` is not a string.
+        ValueError: If `text` contains non-ASCII characters (e.g., emojis, accented letters)
     """
     if not isinstance(text, str):
         raise TypeError("text must be a string")
+
+    if not text.isascii():
+        raise ValueError("text must contain only ASCII characters")
 
     return "".join(format(ord(char), "08b") for char in text)
 
