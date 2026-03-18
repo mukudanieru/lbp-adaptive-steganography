@@ -21,7 +21,7 @@ def text_to_binary(text: str) -> str:
 
     Raises:
         TypeError: If `text` is not a string.
-        ValueError: If `text` contains non-ASCII characters (e.g., emojis, accented letters)
+        ValueError: If `text` contains non-ASCII characters (e.g., emojis, accented letters).
     """
     if not isinstance(text, str):
         raise TypeError("text must be a string")
@@ -41,6 +41,9 @@ def get_binary_header(binary_message: str) -> str:
 
     Returns:
         32-bit binary string representing message length
+
+    Raises:
+        TypeError: If `binary_message` is not a string.
     """
     if not isinstance(binary_message, str):
         raise TypeError("binary_message must be a string")
@@ -63,14 +66,25 @@ def calculate_capacity(classification_map: np.ndarray, num_channels: int = 2) ->
         Total capacity in bits
 
     Raises:
-        TypeError: If inputs are of incorrect type.
-        ValueError: If classification_map contains values other than 0 or 1.
+        TypeError: If `classification_map` is not a numpy.ndarray.
+        TypeError: If `num_channels` is not an integer.
+        TypeError: If `classification_map` does not contain integer values.
+        ValueError: If `classification_map` contains values other than 0 or 1.
+        ValueError: If `num_channels` is not a positive integer.
     """
     if not isinstance(classification_map, np.ndarray):
         raise TypeError("classification_map must be a numpy.ndarray.")
 
     if not isinstance(num_channels, int):
         raise TypeError("num_channels must be an integer.")
+
+    if not np.issubdtype(classification_map.dtype, np.integer):
+        raise TypeError("classification_map must contain integers.")
+
+    if not np.isin(classification_map, [0, 1]).all():
+        raise ValueError(
+            "classification_map must contain only 0 (smooth) or 1 (rough)."
+        )
 
     if num_channels <= 0:
         raise ValueError("num_channels must be a positive integer.")
@@ -81,24 +95,31 @@ def calculate_capacity(classification_map: np.ndarray, num_channels: int = 2) ->
     return int(num_channels * (num_smooth * 1 + num_rough * 2))
 
 
-def embed_bits_in_pixel(rgb_img: np.ndarray, bits: str, num_bits: int) -> np.ndarray:
+def embed_bits_in_pixel(rgb_pixel: np.ndarray, bits: str, num_bits: int) -> np.ndarray:
     """
     Embed bits into a single RGB pixel using LSB substitution.
 
     Args:
-        pixel_rgb: RGB values [R, G, B]
+        rgb_pixel: NumPy array of shape (3,) representing [R, G, B] values
         bits: Binary string to embed
-        num_bits: Number of bits to embed per channel (1 or 2)
+        num_bits: Number of least significant bits to replace per used channel (1 or 2),
+              determined by texture classification (e.g., smooth = 1, rough = 2)
 
     Returns:
-        Modified RGB values
+        Modified RGB pixel as a NumPy array of shape (3,)
 
-    Example:
-        pixel=[226, 137, 125], bits="101", num_bits=1
-        → [227, 136, 125]  (only LSB changed)
+    Raises:
+        TypeError: If `rgb_pixel` is not a numpy.ndarray.
+        TypeError: If `bits` is not a string.
+        TypeError: If `num_bits` is not an integer.
+        ValueError: If `num_bits` is not 1 or 2.
+        ValueError: If `rgb_pixel` does not contain exactly 3 values (R, G, B).
+        ValueError: If `rgb_pixel` contains values outside the range 0 to 255.
+        ValueError: If `bits` contains characters other than '0' or '1'.
+        ValueError: If `bits` exceeds the maximum embeddable length (2 * num_bits).
     """
-    if not isinstance(rgb_img, np.ndarray):
-        raise TypeError("rgb_img must be a numpy ndarray")
+    if not isinstance(rgb_pixel, np.ndarray):
+        raise TypeError("rgb_pixel must be a numpy ndarray")
 
     if not isinstance(bits, str):
         raise TypeError("bits must be a string")
@@ -109,21 +130,24 @@ def embed_bits_in_pixel(rgb_img: np.ndarray, bits: str, num_bits: int) -> np.nda
     if num_bits not in (1, 2):
         raise ValueError("num_bits must be 1 or 2")
 
-    if len(rgb_img) != 3:
-        raise ValueError("rgb_img must contain exactly 3 values (R, G, B)")
+    if len(rgb_pixel) != 3:
+        raise ValueError("rgb_pixel must contain exactly 3 values (R, G, B)")
 
-    if any((v < 0 or v > 255) for v in rgb_img):
+    if any((v < 0 or v > 255) for v in rgb_pixel):
         raise ValueError("RGB values must be in range 0-255")
 
     if not all(b in "01" for b in bits):
         raise ValueError("bits must be a binary string containing only '0' and '1'")
 
-    if len(bits) > 2 * num_bits:
+    CHANNELS_TO_USE = [0, 2]  # R and B indices
+    capacity = len(CHANNELS_TO_USE) * num_bits
+
+    if len(bits) > capacity:
         raise ValueError(
-            f"Too many bits to embed: max {2 * num_bits} bits for num_bits={num_bits}"
+            f"Too many bits to embed: max {capacity} bits for num_bits = {num_bits}"
         )
 
-    pixel = rgb_img.copy()
+    pixel = rgb_pixel.copy()
     bit_index = 0
 
     # Embed in R and B channels only (indices 0 and 2)
@@ -153,25 +177,36 @@ def embed_message(
     pixel_coords: list[tuple[int, int]],
 ) -> np.ndarray:
     """
-    Embed a secret message into an RGB image using texture-adaptive LSB.
+    Embed a secret message into an RGB image using texture-adaptive LSB substitution.
 
     Embedding strategy:
-        - Convert message to binary
-        - Prepend 32-bit header (message length in bits)
-        - Smooth pixel  (0) → 1 LSB per channel
-        - Rough pixel   (1) → 2 LSBs per channel
+        - The message is converted to a binary string.
+        - A 32-bit header (message length in bits) is prepended.
+        - For each pixel, the texture classification determines embedding strength:
+            - Smooth pixel (0) → 1 LSB per used channel
+            - Rough pixel  (1) → 2 LSBs per used channel
+        - Only the Red and Blue channels are used for embedding; Green remains unchanged.
 
     Args:
-        rgb_img: Cover image (H, W, 3), dtype uint8
-        secret_message: Text message to hide
-        classification_map: (H, W) array with values {0,1}
-        pixel_coords: List of (y, x) coordinates in embedding order
+        rgb_img: NumPy array of shape (H, W, 3), dtype uint8, representing the cover image.
+        secret_message: Text string to embed into the image.
+        classification_map: NumPy array of shape (H, W) with values {0, 1}, indicating
+                            smooth (0) or rough (1) pixels.
+        pixel_coords: List of (y, x) tuples specifying embedding order.
 
     Returns:
-        Stego-image (NumPy array)
+        A NumPy array of shape (H, W, 3), dtype uint8, representing the stego-image
+        with the secret message embedded.
 
     Raises:
-        TypeError, ValueError
+        TypeError: If `rgb_img` is not a NumPy array.
+        ValueError: If `rgb_img` does not have shape (H, W, 3) or dtype uint8.
+        TypeError: If `secret_message` is not a string.
+        TypeError: If `classification_map` is not a NumPy array.
+        ValueError: If `classification_map` shape does not match `rgb_img`.
+        TypeError: If `pixel_coords` is not a list of tuples.
+        ValueError: If any pixel coordinate is out of image bounds.
+        ValueError: If the message requires more bits than the image capacity.
     """
     # -------------------------
     # Validation
@@ -197,6 +232,9 @@ def embed_message(
     if not isinstance(pixel_coords, list):
         raise TypeError("pixel_coords must be a list of (y, x) tuples")
 
+    for coord in pixel_coords:
+        if not isinstance(coord, tuple):
+            raise TypeError("pixel_coords must be a list of (y, x) tuples")
     # -------------------------
     # Prepare message bits
     # -------------------------
