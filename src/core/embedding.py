@@ -151,7 +151,7 @@ def embed_bits_in_pixel(rgb_pixel: np.ndarray, bits: str, num_bits: int) -> np.n
     bit_index = 0
 
     # Embed in R and B channels only (indices 0 and 2)
-    for channel in [0, 2]:  # Red and Blue only
+    for channel in CHANNELS_TO_USE:  # Red and Blue only
         if bit_index >= len(bits):
             break
 
