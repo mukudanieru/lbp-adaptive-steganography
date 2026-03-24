@@ -12,7 +12,7 @@ def extract_bits_from_pixel(
     num_bits: int,
 ) -> str:
     """
-    Extract LSB bits from a single RGB pixel.
+    Extract LSB bits from R and B channels only (green channel skipped).
 
     Args:
         pixel_rgb: RGB values [R, G, B]
@@ -20,10 +20,6 @@ def extract_bits_from_pixel(
 
     Returns:
         Binary string of extracted bits
-
-    Example:
-        pixel=[227, 136, 125], num_bits=1
-        → "101" (LSB of each channel)
     """
     if num_bits not in (1, 2):
         raise ValueError("num_bits must be 1 or 2")
@@ -35,10 +31,13 @@ def extract_bits_from_pixel(
 
     mask = (1 << num_bits) - 1  # 1 → 0b1, 2 → 0b11
 
-    for channel_value in pixel_rgb:
+    # Extract from R and B channels only (indices 0 and 2)
+    for channel_idx in [0, 2]:  # Red and Blue only
+        channel_value = pixel_rgb[channel_idx]
         extracted_value = int(channel_value) & mask
         bits += format(extracted_value, f"0{num_bits}b")
 
+    # Green channel (index 1) is skipped
     return bits
 
 
@@ -76,6 +75,7 @@ def extract_message_length(
         texture_type: int = int(classification_map[y, x])
         bits_per_channel: int = 1 if texture_type == 0 else 2
 
+        # Use R&B only extraction
         pixel_bits: str = extract_bits_from_pixel(
             stego_image[y, x],
             bits_per_channel,
@@ -124,7 +124,6 @@ def extract_message(
 
     Args:
         stego_image: RGB stego-image
-        password: Password used during embedding
         classification_map: Texture classification map (recomputed)
         pixel_coords: Pseudorandom pixel coordinates (regenerated)
 

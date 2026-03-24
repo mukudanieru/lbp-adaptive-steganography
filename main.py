@@ -1,13 +1,12 @@
 """
 Main entry point for Adaptive Texture-Based LSB Steganography
-(Hardcoded configuration version)
 """
 
 import cv2
 import numpy as np
 from pathlib import Path
 
-from src.core.preprocessing import load_img, img_to_grayscale
+from src.core.preprocessing import load_img
 from src.core.lbp import compute_lbp_classification
 from src.core.embedding import embed_message
 from src.core.extraction import extract_message
@@ -118,11 +117,8 @@ def embed_workflow():
         print("\n[!] Password cannot be empty.")
         return
 
-    print("\n[+] Converting to grayscale...")
-    grayscale_img: np.ndarray = img_to_grayscale(rgb_img)
-
     print("[+] Computing LBP classification map...")
-    classification_map: np.ndarray = compute_lbp_classification(grayscale_img)
+    classification_map: np.ndarray = compute_lbp_classification(rgb_img)
 
     print("[+] Generating pixel coordinates from password...")
     seed: int = password_to_seed(password)
@@ -178,11 +174,8 @@ def extract_workflow():
         print("\n[!] Password cannot be empty.")
         return
 
-    print("\n[+] Converting to grayscale...")
-    grayscale_img: np.ndarray = img_to_grayscale(stego_img)
-
     print("[+] Computing LBP classification map...")
-    classification_map: np.ndarray = compute_lbp_classification(grayscale_img)
+    classification_map: np.ndarray = compute_lbp_classification(stego_img)
 
     print("[+] Generating pixel coordinates from password...")
     seed: int = password_to_seed(password)
