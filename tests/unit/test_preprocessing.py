@@ -157,15 +157,13 @@ class TestLoadImg:
 
     # --- Different file formats ---
 
-    def test_load_jpeg_image(self):
+    def test_load_jpeg_image_rejected(self):
         img = make_random_bgr(512, 512, seed=7)
         path = save_bgr_to_tmp(img, suffix=".jpg")
-        try:
-            result = load_img(path)
 
-            # JPEG is lossy so we only check shape / type
-            assert result.shape == (512, 512, 3)
-            assert result.dtype == np.uint8
+        try:
+            with pytest.raises(ValueError, match="Unsupported file type"):
+                load_img(path)
         finally:
             os.unlink(path)
 
@@ -177,6 +175,43 @@ class TestLoadImg:
             assert result.shape == (512, 512, 3)
         finally:
             os.unlink(path)
+
+    def test_load_png_image(self):
+        img = make_solid_bgr(512, 512, (123, 45, 67))
+        path = save_bgr_to_tmp(img, suffix=".png")
+        try:
+            result = load_img(path)
+            assert result.shape == (512, 512, 3)
+            assert result.dtype == np.uint8
+        finally:
+            os.unlink(path)
+
+    def test_load_tiff_image(self):
+        img = make_solid_bgr(512, 512, (50, 100, 150))
+        path = save_bgr_to_tmp(img, suffix=".tiff")
+        try:
+            result = load_img(path)
+            assert result.shape == (512, 512, 3)
+            assert result.dtype == np.uint8
+        finally:
+            os.unlink(path)
+
+    # --- Other unsupported formats ---
+
+    @pytest.mark.parametrize(
+        "ext",
+        [".jpg", ".jpeg", ".gif"]
+    )
+    def test_reject_unsupported_formats(self, ext):
+        img = make_solid_bgr(512, 512, (0, 0, 0))
+        path = save_bgr_to_tmp(img, suffix=ext)
+
+        try:
+            with pytest.raises(ValueError, match="Unsupported file type"):
+                load_img(path)
+        finally:
+            os.unlink(path)
+
 
     # --- Return type checks ---
 

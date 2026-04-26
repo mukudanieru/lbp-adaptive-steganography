@@ -5,11 +5,13 @@ Handles image loading, conversion, and bit manipulation
 
 import cv2
 import numpy as np
+from pathlib import Path
 
 
 def load_img(file: str) -> np.ndarray:
     """
     Load an image from file as a NumPy array containing RGB values stored in BGR order.
+    Only supports: .png, .bmp, .tiff
 
     Args:
         file: Path to the image file
@@ -19,7 +21,18 @@ def load_img(file: str) -> np.ndarray:
 
     Raises:
         FileNotFoundError: If the image file cannot be loaded
+        ValueError: if file type is not supported
     """
+
+    if not file:
+        raise FileNotFoundError(f"image file not found: {file}")
+
+    allowed_ext = {".png", ".bmp", ".tiff", ".tif"}
+    ext = Path(file).suffix.lower()
+
+    if ext not in allowed_ext:
+        raise ValueError(f"Unsupported file type: {ext}")
+
     img = cv2.imread(file, cv2.IMREAD_COLOR)
 
     if img is None:
