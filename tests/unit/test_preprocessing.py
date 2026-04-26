@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import pytest
 
+from src.core.preprocessing import load_img_from_bytes, encode_img_to_bytes
 
 # ---------------------------------------------------------------------------
 # Helpers – synthetic image generators
@@ -357,3 +358,238 @@ class TestValidateImageSize:
             assert validate_image_size(gray, (512, 512)) is False
         finally:
             os.unlink(path)
+
+
+# ---------------------------------------------------------------------------
+# Tests for load_img_from_bytes
+# ---------------------------------------------------------------------------
+class TestLoadImgFromBytes:
+
+    # --- Basic loading ---
+
+    def test_load_solid_black_png_bytes(self):
+        img = make_solid_bgr(512, 512, (0, 0, 0))
+        _, buf = cv2.imencode(".png", img)
+        result = load_img_from_bytes(buf.tobytes(), "image.png")
+        assert result.shape == (512, 512, 3)
+        assert result.dtype == np.uint8
+        assert np.all(result == 0)
+
+    def test_load_solid_white_png_bytes(self):
+        img = make_solid_bgr(512, 512, (255, 255, 255))
+        _, buf = cv2.imencode(".png", img)
+        result = load_img_from_bytes(buf.tobytes(), "image.png")
+        assert result.shape == (512, 512, 3)
+        assert np.all(result == 255)
+
+    def test_load_solid_red_png_bytes(self):
+        """Red in BGR is (0, 0, 255)."""
+        img = make_solid_bgr(512, 512, (0, 0, 255))
+        _, buf = cv2.imencode(".png", img)
+        result = load_img_from_bytes(buf.tobytes(), "image.png")
+        assert np.all(result[:, :, 0] == 0)    # B
+        assert np.all(result[:, :, 1] == 0)    # G
+        assert np.all(result[:, :, 2] == 255)  # R
+
+    def test_load_gradient_roundtrip(self):
+        img = make_gradient_bgr(512, 512)
+        _, buf = cv2.imencode(".png", img)
+        result = load_img_from_bytes(buf.tobytes(), "image.png")
+        assert np.array_equal(result, img)
+
+    def test_load_random_noise_roundtrip(self):
+        img = make_random_bgr(512, 512, seed=3)
+        _, buf = cv2.imencode(".png", img)
+        result = load_img_from_bytes(buf.tobytes(), "image.png")
+        assert np.array_equal(result, img)
+
+    def test_load_checkerboard_roundtrip(self):
+        img = make_checkerboard_bgr(512, 512)
+        _, buf = cv2.imencode(".png", img)
+        result = load_img_from_bytes(buf.tobytes(), "image.png")
+        assert np.array_equal(result, img)
+
+    def test_load_channel_ramp_roundtrip(self):
+        img = make_channel_test_bgr(512, 512)
+        _, buf = cv2.imencode(".png", img)
+        result = load_img_from_bytes(buf.tobytes(), "image.png")
+        assert np.array_equal(result, img)
+
+    # --- Supported formats ---
+
+    def test_load_bmp_bytes(self):
+        img = make_solid_bgr(256, 256, (10, 20, 30))
+        _, buf = cv2.imencode(".bmp", img)
+        result = load_img_from_bytes(buf.tobytes(), "image.bmp")
+        assert result.shape == (256, 256, 3)
+        assert result.dtype == np.uint8
+
+    def test_load_tiff_bytes(self):
+        img = make_solid_bgr(256, 256, (50, 100, 150))
+        _, buf = cv2.imencode(".tiff", img)
+        result = load_img_from_bytes(buf.tobytes(), "image.tiff")
+        assert result.shape == (256, 256, 3)
+
+    def test_load_tif_extension(self):
+        img = make_solid_bgr(256, 256, (50, 100, 150))
+        _, buf = cv2.imencode(".tiff", img)
+        result = load_img_from_bytes(buf.tobytes(), "image.tif")
+        assert result.shape == (256, 256, 3)
+
+    # --- Unsupported extensions ---
+
+    @pytest.mark.parametrize("ext", [".jpg", ".jpeg", ".gif"])
+    def test_reject_unsupported_extension(self, ext):
+        img = make_solid_bgr(128, 128, (0, 0, 0))
+        _, buf = cv2.imencode(".png", img)
+        with pytest.raises(ValueError, match="Unsupported file type"):
+            load_img_from_bytes(buf.tobytes(), f"image{ext}")
+
+    def test_extension_check_is_case_insensitive(self):
+        img = make_solid_bgr(128, 128, (0, 0, 0))
+        _, buf = cv2.imencode(".png", img)
+        with pytest.raises(ValueError, match="Unsupported file type"):
+            load_img_from_bytes(buf.tobytes(), "image.JPG")
+
+    # --- Corrupt / invalid bytes ---
+
+    def test_raises_on_empty_bytes(self):
+        with pytest.raises((ValueError, cv2.error)):
+            load_img_from_bytes(b"")
+
+    def test_raises_on_garbage_bytes(self):
+        with pytest.raises(ValueError, match="Failed to decode"):
+            load_img_from_bytes(b"\x00\x01\x02\x03\xff\xfe\xfd")
+
+    def test_raises_on_truncated_png(self):
+        img = make_solid_bgr(128, 128, (100, 100, 100))
+        _, buf = cv2.imencode(".png", img)
+        with pytest.raises(ValueError, match="Failed to decode"):
+            load_img_from_bytes(buf.tobytes()[:50], "image.png")
+
+    # --- Return type ---
+
+    def test_return_type_is_ndarray(self):
+        img = make_solid_bgr(128, 128, (50, 50, 50))
+        _, buf = cv2.imencode(".png", img)
+        assert isinstance(load_img_from_bytes(buf.tobytes(), "image.png"), np.ndarray)
+
+    def test_return_dtype_uint8(self):
+        img = make_random_bgr(128, 128)
+        _, buf = cv2.imencode(".png", img)
+        assert load_img_from_bytes(buf.tobytes(), "image.png").dtype == np.uint8
+
+    def test_return_ndim_is_3(self):
+        img = make_solid_bgr(128, 128, (0, 128, 255))
+        _, buf = cv2.imencode(".png", img)
+        assert load_img_from_bytes(buf.tobytes(), "image.png").ndim == 3
+
+    def test_return_has_3_channels(self):
+        img = make_solid_bgr(128, 128, (0, 128, 255))
+        _, buf = cv2.imencode(".png", img)
+        assert load_img_from_bytes(buf.tobytes(), "image.png").shape[2] == 3
+
+
+# ---------------------------------------------------------------------------
+# Tests for encode_img_to_bytes
+# ---------------------------------------------------------------------------
+class TestEncodeImgToBytes:
+
+    # --- Basic encoding ---
+
+    def test_encode_returns_bytes(self):
+        img = make_solid_bgr(512, 512, (0, 0, 0))
+        assert isinstance(encode_img_to_bytes(img, ".png"), bytes)
+
+    def test_encoded_png_starts_with_png_signature(self):
+        img = make_solid_bgr(128, 128, (100, 150, 200))
+        assert encode_img_to_bytes(img, ".png")[:8] == b"\x89PNG\r\n\x1a\n"
+
+    def test_encode_solid_black_png_roundtrip(self):
+        img = make_solid_bgr(512, 512, (0, 0, 0))
+        encoded = encode_img_to_bytes(img, ".png")
+        decoded = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
+        assert np.array_equal(decoded, img)
+
+    def test_encode_random_noise_png_roundtrip(self):
+        img = make_random_bgr(512, 512, seed=5)
+        encoded = encode_img_to_bytes(img, ".png")
+        decoded = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
+        assert np.array_equal(decoded, img)
+
+    def test_encode_checkerboard_png_roundtrip(self):
+        img = make_checkerboard_bgr(512, 512)
+        encoded = encode_img_to_bytes(img, ".png")
+        decoded = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
+        assert np.array_equal(decoded, img)
+
+    def test_encode_channel_ramp_png_roundtrip(self):
+        img = make_channel_test_bgr(512, 512)
+        encoded = encode_img_to_bytes(img, ".png")
+        decoded = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
+        assert np.array_equal(decoded, img)
+
+    # --- Non-PNG supported formats ---
+
+    def test_encode_bmp_roundtrip(self):
+        img = make_random_bgr(256, 256, seed=5)
+        encoded = encode_img_to_bytes(img, ".bmp")
+        decoded = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
+        assert np.array_equal(decoded, img)
+
+    def test_encode_tiff_roundtrip(self):
+        img = make_random_bgr(256, 256, seed=5)
+        encoded = encode_img_to_bytes(img, ".tiff")
+        decoded = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
+        assert np.array_equal(decoded, img)
+
+    def test_encode_tif_roundtrip(self):
+        img = make_random_bgr(256, 256, seed=5)
+        encoded = encode_img_to_bytes(img, ".tif")
+        decoded = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
+        assert np.array_equal(decoded, img)
+
+    def test_encode_ext_is_case_insensitive(self):
+        img = make_solid_bgr(128, 128, (0, 128, 255))
+        encoded = encode_img_to_bytes(img, ".PNG")
+        decoded = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
+        assert np.array_equal(decoded, img)
+
+    # --- Unsupported extensions ---
+
+    @pytest.mark.parametrize("ext", [".jpg", ".jpeg", ".gif", ".webp"])
+    def test_reject_unsupported_extension(self, ext):
+        img = make_solid_bgr(128, 128, (0, 0, 0))
+        with pytest.raises(ValueError, match="Unsupported file type"):
+            encode_img_to_bytes(img, ext)
+
+    # --- Different sizes ---
+
+    def test_encode_non_square_image(self):
+        img = make_solid_bgr(256, 512, (10, 20, 30))
+        encoded = encode_img_to_bytes(img, ".png")
+        decoded = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
+        assert decoded.shape == (256, 512, 3)
+        assert np.array_equal(decoded, img)
+
+    def test_encode_large_image(self):
+        img = make_random_bgr(1024, 1024, seed=7)
+        encoded = encode_img_to_bytes(img, ".png")
+        decoded = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
+        assert np.array_equal(decoded, img)
+
+    def test_double_encode_decode_png_is_lossless(self):
+        img = make_random_bgr(128, 128, seed=13)
+        once = encode_img_to_bytes(img, ".png")
+        decoded_once = cv2.imdecode(np.frombuffer(once, dtype=np.uint8), cv2.IMREAD_COLOR)
+        twice = encode_img_to_bytes(decoded_once, ".png")
+        decoded_twice = cv2.imdecode(np.frombuffer(twice, dtype=np.uint8), cv2.IMREAD_COLOR)
+        assert np.array_equal(decoded_twice, img)
+
+    # --- Cross-function: encode_img_to_bytes -> load_img_from_bytes ---
+
+    def test_encode_then_load_img_from_bytes_roundtrip(self):
+        img = make_random_bgr(256, 256, seed=11)
+        encoded = encode_img_to_bytes(img, ".png")
+        reloaded = load_img_from_bytes(encoded, "image.png")
+        assert np.array_equal(reloaded, img)

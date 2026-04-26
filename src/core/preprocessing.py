@@ -5,7 +5,7 @@ Handles image loading, conversion, and bit manipulation
 
 import cv2
 import numpy as np
-
+from pathlib import Path
 
 def load_img(file: str) -> np.ndarray:
     """
@@ -42,3 +42,63 @@ def validate_image_size(gray_img: np.ndarray, expected_size: tuple[int, int]) ->
     expected_h, expected_w = expected_size
 
     return (h == expected_h) and (w == expected_w)
+
+
+def load_img_from_bytes(data: bytes, filename: str = "") -> np.ndarray:
+    """
+    Decode an image from raw bytes (e.g. from an UploadFile).
+ 
+    Args:
+        data: Raw image bytes
+        filename: Original filename, used for extension validation
+ 
+    Returns:
+        NumPy array of shape (H, W, 3), dtype uint8, in BGR format
+ 
+    Raises:
+        ValueError: If file type is unsupported or decoding fails
+    """
+
+    if not data:
+        raise ValueError("Failed to decode image. File may be corrupt or unsupported.")
+
+    if filename:
+        allowed_ext = {".png", ".bmp", ".tiff", ".tif"}
+        ext = Path(filename).suffix.lower()
+        if ext not in allowed_ext:
+            raise ValueError(f"Unsupported file type: {ext}. Allowed: png, bmp, tiff")
+ 
+    arr = np.frombuffer(data, dtype=np.uint8)
+    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+ 
+    if img is None:
+        raise ValueError("Failed to decode image. File may be corrupt or unsupported.")
+ 
+    return img
+ 
+ 
+def encode_img_to_bytes(img: np.ndarray, ext: str) -> bytes:
+    """
+    Encode a NumPy image array to bytes in the specified format.
+ 
+    Args:
+        img: NumPy array of shape (H, W, 3), dtype uint8
+        ext: File extension including dot (e.g. ".png", ".bmp", ".tiff")
+ 
+    Returns:
+        Encoded image bytes
+ 
+    Raises:
+        ValueError: If the extension is unsupported or encoding fails
+    """
+    ext = ext.lower()
+    allowed_ext = {".png", ".bmp", ".tiff", ".tif"}
+ 
+    if ext not in allowed_ext:
+        raise ValueError(f"Unsupported file type: {ext}. Allowed: png, bmp, tiff")
+ 
+    success, buffer = cv2.imencode(ext, img)
+    if not success:
+        raise ValueError(f"Failed to encode image as {ext}")
+    return buffer.tobytes()
+ 
