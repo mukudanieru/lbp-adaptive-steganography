@@ -8,7 +8,7 @@
 USAGE
 -----
 Single pair evaluation:
-    python eval_library.py --cover cover.png --stego stego.png --bits 104832
+    python eval.py --cover cover.png --stego stego.png --bits 104832
 
 Dependencies:
     pip install scikit-image numpy pillow
