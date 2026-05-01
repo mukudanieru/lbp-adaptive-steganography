@@ -5,6 +5,10 @@ Handles secret message embedding into cover images
 
 import numpy as np
 
+SMOOTH_BITS = 1
+ROUGH_BITS = 2
+EMBEDDING_CHANNELS = [0, 1]
+
 
 def text_to_binary(text: str) -> str:
     """
@@ -56,10 +60,10 @@ def calculate_capacity(classification_map: np.ndarray, num_channels: int = 2) ->
     """
     Calculate embedding capacity based on texture classification.
 
-    Capacity = num_channels * (num_smooth * 1 + num_rough * 2)
+    Capacity = num_channels * (num_smooth * SMOOTH_BITS + num_rough * ROUGH_BITS)
 
     Args:
-        classification_map: Linear array of texture classification (0=smooth, 1=rough)
+        classification_map: Linear array of texture classification (SMOOTH_BITS=smooth, ROUGH_BITS=rough)
         num_channels: Number of color channels used for embedding (default 2 for R&B only)
 
     Returns:
@@ -81,7 +85,7 @@ def calculate_capacity(classification_map: np.ndarray, num_channels: int = 2) ->
     if not np.issubdtype(classification_map.dtype, np.integer):
         raise TypeError("classification_map must contain integers.")
 
-    if not np.isin(classification_map, [0, 1]).all():
+    if not np.isin(classification_map, EMBEDDING_CHANNELS).all():
         raise ValueError(
             "classification_map must contain only 0 (smooth) or 1 (rough)."
         )
@@ -92,7 +96,7 @@ def calculate_capacity(classification_map: np.ndarray, num_channels: int = 2) ->
     num_rough = np.count_nonzero(classification_map == 1)
     num_smooth = np.count_nonzero(classification_map == 0)
 
-    return int(num_channels * (num_smooth * 1 + num_rough * 2))
+    return int(num_channels * (num_smooth * SMOOTH_BITS + num_rough * ROUGH_BITS))
 
 
 def embed_bits_in_pixel(rgb_pixel: np.ndarray, bits: str, num_bits: int) -> np.ndarray:
@@ -127,7 +131,7 @@ def embed_bits_in_pixel(rgb_pixel: np.ndarray, bits: str, num_bits: int) -> np.n
     if not isinstance(num_bits, int):
         raise TypeError("num_bits must be an integer")
 
-    if num_bits not in (1, 2):
+    if num_bits not in (SMOOTH_BITS, ROUGH_BITS):
         raise ValueError("num_bits must be 1 or 2")
 
     if len(rgb_pixel) != 3:
@@ -139,8 +143,7 @@ def embed_bits_in_pixel(rgb_pixel: np.ndarray, bits: str, num_bits: int) -> np.n
     if not all(b in "01" for b in bits):
         raise ValueError("bits must be a binary string containing only '0' and '1'")
 
-    CHANNELS_TO_USE = [0, 2]  # R and B indices
-    capacity = len(CHANNELS_TO_USE) * num_bits
+    capacity = len(EMBEDDING_CHANNELS) * num_bits
 
     if len(bits) > capacity:
         raise ValueError(
@@ -151,7 +154,7 @@ def embed_bits_in_pixel(rgb_pixel: np.ndarray, bits: str, num_bits: int) -> np.n
     bit_index = 0
 
     # Embed in R and B channels only (indices 0 and 2)
-    for channel in CHANNELS_TO_USE:  # Red and Blue only
+    for channel in EMBEDDING_CHANNELS:  # Red and Blue only
         if bit_index >= len(bits):
             break
 
@@ -183,8 +186,8 @@ def embed_message(
         - The message is converted to a binary string.
         - A 32-bit header (message length in bits) is prepended.
         - For each pixel, the texture classification determines embedding strength:
-            - Smooth pixel (0) → 1 LSB per used channel
-            - Rough pixel  (1) → 2 LSBs per used channel
+            - Smooth pixel (0) → SMOOTH_BITS LSB per used channel
+            - Rough pixel  (1) → ROUGH_BITS LSBs per used channel
         - Only the Red and Blue channels are used for embedding; Green remains unchanged.
 
     Args:
@@ -246,7 +249,7 @@ def embed_message(
     # -------------------------
     # Capacity check
     # -------------------------
-    num_channels = 2
+    num_channels = len(EMBEDDING_CHANNELS)
     capacity = calculate_capacity(classification_map)
 
     if total_bits > capacity:
@@ -273,7 +276,7 @@ def embed_message(
         texture = classification_map[y, x]
 
         # Determine embedding strength
-        bits_per_channel = 1 if texture == 0 else 2
+        bits_per_channel = SMOOTH_BITS if texture == 0 else ROUGH_BITS
         bits_per_pixel = bits_per_channel * num_channels
 
         # Extract chunk for this pixel

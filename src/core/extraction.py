@@ -5,6 +5,10 @@ Handles extracting hidden messages from stego-images
 
 import numpy as np
 
+SMOOTH_BITS = 1
+ROUGH_BITS = 2
+EMBEDDING_CHANNELS = [0, 1]
+
 
 def extract_bits_from_pixel(
     rgb_pixel: np.ndarray,
@@ -16,7 +20,7 @@ def extract_bits_from_pixel(
     Args:
         rgb_pixel: NumPy array of shape (3,) representing [R, G, B] values
         num_bits: Number of least significant bits to extract per used channel (1 or 2),
-              determined by texture classification (e.g., smooth = 1, rough = 2)
+              determined by texture classification (e.g., smooth = SMOOTH_BITS, rough = ROUGH_BITS)
 
     Returns:
         Binary string of extracted bits
@@ -24,7 +28,7 @@ def extract_bits_from_pixel(
     Raises:
         TypeError: If `rgb_pixel` is not a numpy.ndarray.
         TypeError: If `num_bits` is not an integer.
-        ValueError: If `num_bits` is not 1 or 2.
+        ValueError: If `num_bits` is not SMOOTH_BITS or ROUGH_BITS.
         ValueError: If `rgb_pixel` does not contain exactly 3 values (R, G, B).
         ValueError: If `rgb_pixel` contains values outside the range 0 to 255.
     """
@@ -34,8 +38,8 @@ def extract_bits_from_pixel(
     if not isinstance(num_bits, int):
         raise TypeError("num_bits must be an integer")
 
-    if num_bits not in (1, 2):
-        raise ValueError("num_bits must be 1 or 2")
+    if num_bits not in (SMOOTH_BITS, ROUGH_BITS):
+        raise ValueError(f"num_bits must be {SMOOTH_BITS} or {ROUGH_BITS}")
 
     if len(rgb_pixel) != 3:
         raise ValueError("rgb_pixel must contain exactly 3 values (R, G, B)")
@@ -48,7 +52,7 @@ def extract_bits_from_pixel(
     mask = (1 << num_bits) - 1  # 1 → 0b1, 2 → 0b11
 
     # Extract from R and B channels only (indices 0 and 2)
-    for channel_idx in [0, 2]:  # Red and Blue only
+    for channel_idx in EMBEDDING_CHANNELS:  # Red and Blue only
         channel_value = rgb_pixel[channel_idx]
         extracted_value = int(channel_value) & mask
         bits += format(extracted_value, f"0{num_bits}b")
@@ -123,7 +127,7 @@ def extract_message_length(
             raise ValueError("pixel coordinate out of bounds")
 
         texture_type: int = int(classification_map[y, x])
-        bits_per_channel: int = 1 if texture_type == 0 else 2
+        bits_per_channel: int = SMOOTH_BITS if texture_type == 0 else ROUGH_BITS
 
         # Use R&B only extraction
         pixel_bits: str = extract_bits_from_pixel(
@@ -272,7 +276,7 @@ def extract_message(
             raise ValueError("pixel coordinate out of bounds")
 
         texture_type: int = int(classification_map[y, x])
-        bits_per_channel: int = 1 if texture_type == 0 else 2
+        bits_per_channel: int = SMOOTH_BITS if texture_type == 0 else ROUGH_BITS
 
         pixel_bits: str = extract_bits_from_pixel(
             stego_image[y, x],
