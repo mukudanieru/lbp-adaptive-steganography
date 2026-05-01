@@ -11,6 +11,7 @@ from src.core.embedding import embed_message
 from src.core.lbp import compute_lbp_classification
 from src.core.extraction import extract_message
 
+from src.core.preprocessing import load_img_from_bytes, encode_img_to_bytes
 
 cover_path = Path("./data/cover")
 
@@ -350,3 +351,121 @@ class TestExtractMessageEdgeCases:
             os.unlink(path)
 
         assert r1 == r2
+
+# ---------------------------------------------------------------------------
+# Tests for load_img_from_bytes – integration
+# ---------------------------------------------------------------------------
+class TestLoadImgFromBytesIntegration:
+
+    def test_load_from_bytes_matches_load_img_from_disk(self):
+        """Pixels from load_img_from_bytes must match load_img from disk."""
+        img = make_random_bgr(512, 512, seed=21)
+        path = save_img_to_tmp(img, ".png")
+        try:
+            from_disk = load_img(path)
+            with open(path, "rb") as f:
+                from_bytes = load_img_from_bytes(f.read(), "image.png")
+            assert np.array_equal(from_disk, from_bytes)
+        finally:
+            os.unlink(path)
+
+    def test_bytes_image_produces_valid_lbp_map(self):
+        """Image loaded from bytes should produce a valid LBP classification map."""
+        img = make_random_bgr(512, 512, seed=23)
+        _, buf = cv2.imencode(".png", img)
+        loaded = load_img_from_bytes(buf.tobytes(), "image.png")
+        cmap = compute_lbp_classification(loaded)
+        assert cmap.shape == (512, 512)
+
+    def test_bytes_image_lbp_matches_disk_lbp(self):
+        """LBP map from bytes-loaded image must match LBP map from disk-loaded image."""
+        img = make_random_bgr(512, 512, seed=24)
+        path = save_img_to_tmp(img, ".png")
+        try:
+            from_disk = load_img(path)
+            with open(path, "rb") as f:
+                from_bytes = load_img_from_bytes(f.read(), "image.png")
+            assert np.array_equal(
+                compute_lbp_classification(from_disk),
+                compute_lbp_classification(from_bytes),
+            )
+        finally:
+            os.unlink(path)
+
+    def test_bytes_image_usable_in_embed_extract_roundtrip(self):
+        """Full pipeline using an image loaded from bytes as the cover image."""
+        cover = make_random_bgr(512, 512, seed=25)
+        _, buf = cv2.imencode(".png", cover)
+        cover_from_bytes = load_img_from_bytes(buf.tobytes(), "image.png")
+        h, w, _ = cover_from_bytes.shape
+        cmap = compute_lbp_classification(cover_from_bytes)
+        seed = password_to_seed("bytespw")
+        coords = generate_pixel_coordinates(h, w, seed)
+        stego = embed_message(cover_from_bytes, "from bytes", cmap, coords)
+        path = save_img_to_tmp(stego, ".png")
+        try:
+            stego_img = load_img(path)
+            stego_cmap = compute_lbp_classification(stego_img)
+            assert np.array_equal(cmap, stego_cmap)
+            assert extract_message(stego_img, stego_cmap, coords) == "from bytes"
+        finally:
+            os.unlink(path)
+
+
+# ---------------------------------------------------------------------------
+# Tests for encode_img_to_bytes – integration
+# ---------------------------------------------------------------------------
+class TestEncodeImgToBytesIntegration:
+
+    def test_encode_pixels_match_disk_saved_file(self):
+        """Pixels from encode_img_to_bytes must match a cv2.imwrite PNG on disk."""
+        img = make_random_bgr(256, 256, seed=15)
+        path = save_img_to_tmp(img, ".png")
+        try:
+            with open(path, "rb") as f:
+                from_disk = f.read()
+            from_encode = encode_img_to_bytes(img, ".png")
+            disk_decoded = cv2.imdecode(np.frombuffer(from_disk, dtype=np.uint8), cv2.IMREAD_COLOR)
+            enc_decoded = cv2.imdecode(np.frombuffer(from_encode, dtype=np.uint8), cv2.IMREAD_COLOR)
+            assert np.array_equal(disk_decoded, enc_decoded)
+        finally:
+            os.unlink(path)
+
+    def test_lbp_preserved_after_encode_decode(self):
+        """LBP map must be identical before and after encode → decode cycle."""
+        img = make_random_bgr(512, 512, seed=19)
+        cmap_before = compute_lbp_classification(img)
+        encoded = encode_img_to_bytes(img, ".png")
+        decoded = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
+        cmap_after = compute_lbp_classification(decoded)
+        assert np.array_equal(cmap_before, cmap_after)
+
+    def test_stego_encode_then_extract_roundtrip(self):
+        """Encode stego to bytes, reload via load_img_from_bytes, extract message."""
+        cover = make_random_bgr(512, 512, seed=17)
+        h, w, _ = cover.shape
+        cmap = compute_lbp_classification(cover)
+        seed = password_to_seed("encodepw")
+        coords = generate_pixel_coordinates(h, w, seed)
+        stego = embed_message(cover, "encoded", cmap, coords)
+
+        encoded = encode_img_to_bytes(stego, ".png")
+        reloaded = load_img_from_bytes(encoded, "stego.png")
+        stego_cmap = compute_lbp_classification(reloaded)
+
+        assert np.array_equal(cmap, stego_cmap), "LBP changed after encode/reload"
+        assert extract_message(reloaded, stego_cmap, coords) == "encoded"
+
+    def test_encode_bmp_then_load_roundtrip(self):
+        """BMP encode → load_img_from_bytes must preserve pixels exactly."""
+        img = make_random_bgr(256, 256, seed=31)
+        encoded = encode_img_to_bytes(img, ".bmp")
+        reloaded = load_img_from_bytes(encoded, "image.bmp")
+        assert np.array_equal(reloaded, img)
+
+    def test_encode_tiff_then_load_roundtrip(self):
+        """TIFF encode → load_img_from_bytes must preserve pixels exactly."""
+        img = make_random_bgr(256, 256, seed=33)
+        encoded = encode_img_to_bytes(img, ".tiff")
+        reloaded = load_img_from_bytes(encoded, "image.tiff")
+        assert np.array_equal(reloaded, img)

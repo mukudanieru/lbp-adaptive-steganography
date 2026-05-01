@@ -6,15 +6,15 @@ import os
 import csv
 import numpy as np
 from PIL import Image
-from src.core.preprocessing import img_to_grayscale
 from src.core.lbp import compute_lbp_classification
 from src.core.embedding import embed_message, calculate_capacity
 from src.core.pseudorandom import password_to_seed, generate_pixel_coordinates
 from skimage.metrics import mean_squared_error, peak_signal_noise_ratio, structural_similarity
 
 # Config
-INPUT_DIR = 'data'
-BPP_VALUES = [0.1, 0.2, 0.3, 0.4]
+INPUT_DIRS = [os.path.join('data', 'png')]
+EXTENSIONS = ('.png',)
+BPP_VALUES = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 PASSWORD = 'mypass'
 OUTPUT_CSV = 'batch_eval_all.csv'
 
@@ -29,12 +29,11 @@ def embed_and_eval(cover_path, output_path, bpp, password):
     height, width = rgb_img.shape[:2]
     total_pixels = height * width
     
-    # Compute LBP classification
-    gray = img_to_grayscale(rgb_img)
-    classification_map = compute_lbp_classification(gray)
+    # Compute LBP classification (uses green channel internally)
+    classification_map = compute_lbp_classification(rgb_img)
     
     # Calculate max capacity
-    max_capacity = calculate_capacity(classification_map, 3)
+    max_capacity = calculate_capacity(classification_map)
     
     # Generate message for target BPP
     target_bits = int(bpp * total_pixels)
@@ -45,7 +44,7 @@ def embed_and_eval(cover_path, output_path, bpp, password):
     # Embed
     seed = password_to_seed(password)
     pixel_coords = generate_pixel_coordinates(height, width, seed)
-    stego_img = embed_message(rgb_img, message, password, classification_map, pixel_coords)
+    stego_img = embed_message(rgb_img, message, classification_map, pixel_coords)
     
     # Save
     Image.fromarray(stego_img).save(output_path)
@@ -73,13 +72,20 @@ def embed_and_eval(cover_path, output_path, bpp, password):
 
 
 def main():
-    # Get all PNG files
-    png_files = [f for f in os.listdir(INPUT_DIR) if f.lower().endswith('.png')]
-    png_files.sort()
-    
-    print(f'Found {len(png_files)} PNG files')
+    # Get all BMP/TIFF files from configured folders
+    input_files = []
+    for input_dir in INPUT_DIRS:
+        if not os.path.isdir(input_dir):
+            continue
+        for filename in os.listdir(input_dir):
+            if filename.lower().endswith(EXTENSIONS):
+                input_files.append((input_dir, filename))
+
+    input_files.sort(key=lambda item: (item[0], item[1]))
+
+    print(f'Found {len(input_files)} BMP/TIFF files')
     print(f'BPP values: {BPP_VALUES}')
-    print(f'Total embeddings: {len(png_files) * len(BPP_VALUES)}')
+    print(f'Total embeddings: {len(input_files) * len(BPP_VALUES)}')
     print('=' * 60)
     
     results = []
@@ -90,15 +96,23 @@ def main():
         os.makedirs(out_dir, exist_ok=True)
         print(f'\n[BPP {bpp}] Output: {out_dir}/')
         
-        for img_file in png_files:
-            cover_path = os.path.join(INPUT_DIR, img_file)
-            output_path = os.path.join(out_dir, img_file)
+        for input_dir, img_file in input_files:
+            cover_path = os.path.join(input_dir, img_file)
+            source_folder = os.path.basename(input_dir)
+            output_subdir = os.path.join(out_dir, source_folder)
+            os.makedirs(output_subdir, exist_ok=True)
+            output_path = os.path.join(output_subdir, img_file)
             
-            print(f'  {img_file}...', end=' ')
+            print(f'  {source_folder}/{img_file}...', end=' ')
             result = embed_and_eval(cover_path, output_path, bpp, PASSWORD)
+            result['image'] = f'{source_folder}/{result["image"]}'
             results.append(result)
             print(f'PSNR: {result["psnr_db"]:.2f} dB, SSIM: {result["ssim"]:.4f}')
     
+    if not results:
+        print('\nNo images were processed. Check INPUT_DIRS and file extensions.')
+        return
+
     # Save all results to CSV
     with open(OUTPUT_CSV, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=results[0].keys())
