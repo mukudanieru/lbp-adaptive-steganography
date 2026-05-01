@@ -5,9 +5,9 @@ Handles extracting hidden messages from stego-images
 
 import numpy as np
 
-SMOOTH_BITS = 1
-ROUGH_BITS = 2
-EMBEDDING_CHANNELS = [0, 1]
+SMOOTH_BITS = 2
+ROUGH_BITS = 3
+EMBEDDING_CHANNELS = [0, 2]
 
 
 def extract_bits_from_pixel(
@@ -19,7 +19,7 @@ def extract_bits_from_pixel(
 
     Args:
         rgb_pixel: NumPy array of shape (3,) representing [R, G, B] values
-        num_bits: Number of least significant bits to extract per used channel (1 or 2),
+        num_bits: Number of least significant bits to extract per used channel (SMOOTH_BITS or ROUGH_BITS),
               determined by texture classification (e.g., smooth = SMOOTH_BITS, rough = ROUGH_BITS)
 
     Returns:

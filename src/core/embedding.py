@@ -5,9 +5,9 @@ Handles secret message embedding into cover images
 
 import numpy as np
 
-SMOOTH_BITS = 1
-ROUGH_BITS = 2
-EMBEDDING_CHANNELS = [0, 1]
+SMOOTH_BITS = 2
+ROUGH_BITS = 3
+EMBEDDING_CHANNELS = [0, 2]
 
 
 def text_to_binary(text: str) -> str:
@@ -85,7 +85,7 @@ def calculate_capacity(classification_map: np.ndarray, num_channels: int = 2) ->
     if not np.issubdtype(classification_map.dtype, np.integer):
         raise TypeError("classification_map must contain integers.")
 
-    if not np.isin(classification_map, EMBEDDING_CHANNELS).all():
+    if not np.isin(classification_map, [0, 1]).all():
         raise ValueError(
             "classification_map must contain only 0 (smooth) or 1 (rough)."
         )
@@ -106,7 +106,7 @@ def embed_bits_in_pixel(rgb_pixel: np.ndarray, bits: str, num_bits: int) -> np.n
     Args:
         rgb_pixel: NumPy array of shape (3,) representing [R, G, B] values
         bits: Binary string to embed
-        num_bits: Number of least significant bits to replace per used channel (1 or 2),
+        num_bits: Number of least significant bits to replace per used channel (SMOOTH_BITS or ROUGH_BITS),
               determined by texture classification (e.g., smooth = 1, rough = 2)
 
     Returns:
@@ -116,7 +116,7 @@ def embed_bits_in_pixel(rgb_pixel: np.ndarray, bits: str, num_bits: int) -> np.n
         TypeError: If `rgb_pixel` is not a numpy.ndarray.
         TypeError: If `bits` is not a string.
         TypeError: If `num_bits` is not an integer.
-        ValueError: If `num_bits` is not 1 or 2.
+        ValueError: If `num_bits` is not SMOOTH_BITS or ROUGH_BITS.
         ValueError: If `rgb_pixel` does not contain exactly 3 values (R, G, B).
         ValueError: If `rgb_pixel` contains values outside the range 0 to 255.
         ValueError: If `bits` contains characters other than '0' or '1'.
@@ -132,7 +132,7 @@ def embed_bits_in_pixel(rgb_pixel: np.ndarray, bits: str, num_bits: int) -> np.n
         raise TypeError("num_bits must be an integer")
 
     if num_bits not in (SMOOTH_BITS, ROUGH_BITS):
-        raise ValueError("num_bits must be 1 or 2")
+        raise ValueError(f"num_bits must be {SMOOTH_BITS} or {ROUGH_BITS}")
 
     if len(rgb_pixel) != 3:
         raise ValueError("rgb_pixel must contain exactly 3 values (R, G, B)")
@@ -158,7 +158,7 @@ def embed_bits_in_pixel(rgb_pixel: np.ndarray, bits: str, num_bits: int) -> np.n
         if bit_index >= len(bits):
             break
 
-        bits_to_embed = bits[bit_index : bit_index + num_bits]
+        bits_to_embed = bits[bit_index : bit_index + num_bits].ljust(num_bits, "0")
         bit_index += num_bits
 
         if len(bits_to_embed) == 0:
