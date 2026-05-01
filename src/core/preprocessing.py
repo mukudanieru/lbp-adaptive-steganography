@@ -41,17 +41,17 @@ def load_img(file: str) -> np.ndarray:
     return img
 
 
-def validate_image_size(gray_img: np.ndarray, expected_size: tuple[int, int]) -> bool:
+def validate_image_size(rgb_img: np.ndarray, expected_size: tuple[int, int]) -> bool:
     """
-    Validate that a grayscale image has expected (height, width).
+    Validate that a rgb image has expected (height, width).
     """
-    if gray_img.ndim != 2:
+    if rgb_img.ndim != 2:
         raise ValueError("input must have at least 2 dimensions")
 
     if len(expected_size) != 2:
         raise ValueError("expected_size must be (height, width)")
 
-    h, w = gray_img.shape
+    h, w = rgb_img.shape
     expected_h, expected_w = expected_size
 
     return (h == expected_h) and (w == expected_w)
