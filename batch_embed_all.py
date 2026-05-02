@@ -14,8 +14,8 @@ from skimage.metrics import mean_squared_error, peak_signal_noise_ratio, structu
 # Config
 INPUT_DIRS = [os.path.join('data', 'png')]
 EXTENSIONS = ('.png',)
-BPP_VALUES = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-PASSWORD = 'mypass'
+BPP_VALUES = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+PASSWORD = 'LbpSteg_2026!Study'
 OUTPUT_CSV = 'batch_eval_all.csv'
 
 LOREM = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. ' * 200
@@ -98,14 +98,10 @@ def main():
         
         for input_dir, img_file in input_files:
             cover_path = os.path.join(input_dir, img_file)
-            source_folder = os.path.basename(input_dir)
-            output_subdir = os.path.join(out_dir, source_folder)
-            os.makedirs(output_subdir, exist_ok=True)
-            output_path = os.path.join(output_subdir, img_file)
+            output_path = os.path.join(out_dir, img_file)
             
-            print(f'  {source_folder}/{img_file}...', end=' ')
+            print(f'  {img_file}...', end=' ')
             result = embed_and_eval(cover_path, output_path, bpp, PASSWORD)
-            result['image'] = f'{source_folder}/{result["image"]}'
             results.append(result)
             print(f'PSNR: {result["psnr_db"]:.2f} dB, SSIM: {result["ssim"]:.4f}')
     

@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 
 # Add all CSVs you want to average together (png/bmp/tiff steganalysis outputs).
 INPUT_CSVS = [
-    "png_batch_eval_all.csv",
+    "batch_eval_all12.csv"
+    # "png_batch_eval_all.csv",
     # "bmp_batch_eval_all.csv",
     # "tiff_batch_eval_all.csv",
 ]

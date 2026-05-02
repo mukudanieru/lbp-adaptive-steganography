@@ -5,9 +5,9 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 COVER_DIR = Path("data/png")
-STEGO_BASE_DIR = Path("data/stego/png")
-OUTPUT_DIR = Path("histograms/png")
-BPP_VALUES = [0.1, 0.2, 0.3, 0.4]
+STEGO_BASE_DIR = Path("data/stego")
+OUTPUT_DIR = Path("histograms")
+BPP_VALUES = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
 
 def load_rgb(path: Path) -> np.ndarray:
@@ -16,7 +16,7 @@ def load_rgb(path: Path) -> np.ndarray:
 
 def plot_histogram(cover: np.ndarray, stego: np.ndarray, title: str, output_path: Path) -> None:
     colors = ["red", "green", "blue"]
-    stego_color = "orange"
+    stego_color = "yellow"
     fig, axes = plt.subplots(1, 3, figsize=(12, 3), constrained_layout=True)
 
     for i, ax in enumerate(axes):
@@ -59,7 +59,7 @@ def main() -> None:
 
         for bpp in BPP_VALUES:
             bpp_label = f"{bpp:.1f}"
-            stego_dir = STEGO_BASE_DIR / f"png_stego_bpp_{bpp_label}"
+            stego_dir = STEGO_BASE_DIR / f"stego_bpp_{bpp_label}"
             stego_path = stego_dir / cover_path.name
 
             if not stego_path.exists():
